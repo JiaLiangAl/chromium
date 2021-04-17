@@ -503,6 +503,17 @@
              "--enable-blink-features=CorsRFC1918"]
   },
   {
+    "prefix": "plz-service-worker",
+    "bases": ["http/tests/serviceworker",
+              "http/tests/devtools/service-workers",
+              "http/tests/devtools/console",
+              "http/tests/inspector-protocol/fetch",
+              "external/wpt/service-workers",
+              "external/wpt/html/cross-origin-embedder-policy"],
+    "args": ["--enable-features=PlzServiceWorker"]
+  },
+
+  {
     "prefix": "direct-sockets",
     "bases": ["external/wpt/raw-sockets"],
     "args": ["--enable-features=DirectSockets"]
@@ -789,6 +800,15 @@
     "args": [ "--js-flags=--harmony-weak-refs" ]
   },
   {
+    "prefix": "offsetparent-old-behavior",
+    "bases": [
+      "external/wpt/css/css-contain/content-visibility",
+      "external/wpt/shadow-dom",
+      "fast/dom/shadow"
+    ],
+    "args": ["--disable-features=OffsetParentNewSpecBehavior"]
+  },
+  {
     "prefix": "document-domain-disabled-by-default",
     "bases": [
       "external/wpt/document-policy/experimental-features/document-domain"
@@ -1005,5 +1025,12 @@
     "prefix": "webid",
     "bases": ["wpt_internal/webid"],
     "args": ["--enable-features=WebID"]
+  },
+  {
+    "prefix": "document-transition",
+    "bases": ["wpt_internal/document-transition"],
+    "args": ["--enable-features=DocumentTransition",
+             "--enable-threaded-compositing",
+             "--enable-gpu-rasterization"]
   }
 ]

@@ -1620,7 +1620,13 @@ IN_PROC_BROWSER_TEST_F(DevToolsTest, TestNetworkSyncSize) {
 }
 
 // Tests raw headers text.
-IN_PROC_BROWSER_TEST_F(DevToolsTest, TestNetworkRawHeadersText) {
+// TODO(https://crbug.com/1199825): Flaky on Mac.
+#if defined(OS_MAC)
+#define MAYBE_TestNetworkRawHeadersText DISABLED_TestNetworkRawHeadersText
+#else
+#define MAYBE_TestNetworkRawHeadersText TestNetworkRawHeadersText
+#endif
+IN_PROC_BROWSER_TEST_F(DevToolsTest, MAYBE_TestNetworkRawHeadersText) {
   // This test expects headers to be exactly 112 bytes in length, so add an
   // extra header to reach that length.
   RunTest("testNetworkRawHeadersText",
@@ -2678,4 +2684,65 @@ IN_PROC_BROWSER_TEST_F(DevToolsLocalizationTest,
   EXPECT_TRUE(NavigatorLanguageMatches("es"));
 
   CloseDevToolsWindow();
+}
+
+namespace {
+
+class DevToolsFetchTest : public DevToolsTest {
+ protected:
+  content::EvalJsResult Fetch(
+      const content::ToRenderFrameHost& execution_target,
+      const std::string& url) {
+    return content::EvalJs(execution_target, content::JsReplace(R"(
+      (async function() {
+        const response = await fetch($1);
+        return response.status;
+      })();
+    )",
+                                                                url));
+  }
+
+  content::EvalJsResult FetchFromDevToolsWindow(const std::string& url) {
+    WebContents* wc = DevToolsWindowTesting::Get(window_)->main_web_contents();
+    return Fetch(wc, url);
+  }
+};
+
+}  // namespace
+
+IN_PROC_BROWSER_TEST_F(DevToolsFetchTest,
+                       DevToolsFetchFromDevToolsSchemeUndocked) {
+  OpenDevToolsWindow("about:blank", false);
+
+  EXPECT_EQ(200, FetchFromDevToolsWindow(
+                     "devtools://devtools/bundled/Images/whatsnew.avif"));
+
+  CloseDevToolsWindow();
+}
+
+IN_PROC_BROWSER_TEST_F(DevToolsFetchTest,
+                       DevToolsFetchFromDevToolsSchemeDocked) {
+  OpenDevToolsWindow("about:blank", true);
+
+  EXPECT_EQ(200, FetchFromDevToolsWindow(
+                     "devtools://devtools/bundled/Images/whatsnew.avif"));
+
+  CloseDevToolsWindow();
+}
+
+IN_PROC_BROWSER_TEST_F(DevToolsFetchTest, DevToolsFetchFromHttpDisallowed) {
+  OpenDevToolsWindow("about:blank", true);
+
+  const auto result = FetchFromDevToolsWindow("http://www.google.com");
+  EXPECT_EQ("a JavaScript error:\nTypeError: Failed to fetch\n", result.error);
+
+  CloseDevToolsWindow();
+}
+
+IN_PROC_BROWSER_TEST_F(DevToolsFetchTest, FetchFromDevToolsSchemeIsProhibited) {
+  ui_test_utils::NavigateToURL(browser(), GURL("about:blank"));
+
+  const auto result = Fetch(GetInspectedTab(),
+                            "devtools://devtools/bundled/Images/whatsnew.avif");
+  EXPECT_EQ("a JavaScript error:\nTypeError: Failed to fetch\n", result.error);
 }

@@ -104,8 +104,6 @@ class TranslatePrefs {
   static const char kPrefTranslateDeniedCount[];
   static const char kPrefTranslateIgnoredCount[];
   static const char kPrefTranslateAcceptedCount[];
-  static const char kPrefTranslateLastDeniedTimeForLanguage[];
-  static const char kPrefTranslateTooOftenDeniedForLanguage[];
 #if defined(OS_ANDROID) || defined(OS_IOS)
   static const char kPrefTranslateAutoAlwaysCount[];
   static const char kPrefTranslateAutoNeverCount[];
@@ -293,7 +291,8 @@ class TranslatePrefs {
                            std::string* target_language);
 
   // Stores and retrieves the last-observed translate target language. Used to
-  // determine which target language to offer in future.
+  // determine which target language to offer in future. The translate target
+  // is converted to a translate synonym before it is set.
   void SetRecentTargetLanguage(const std::string& target_language);
   void ResetRecentTargetLanguage();
   std::string GetRecentTargetLanguage() const;

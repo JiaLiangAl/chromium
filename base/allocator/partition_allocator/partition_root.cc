@@ -9,6 +9,7 @@
 #include "base/allocator/partition_allocator/page_allocator.h"
 #include "base/allocator/partition_allocator/partition_address_space.h"
 #include "base/allocator/partition_allocator/partition_alloc_check.h"
+#include "base/allocator/partition_allocator/partition_alloc_config.h"
 #include "base/allocator/partition_allocator/partition_alloc_features.h"
 #include "base/allocator/partition_allocator/partition_bucket.h"
 #include "base/allocator/partition_allocator/partition_cookie.h"
@@ -496,7 +497,7 @@ void PartitionRoot<thread_safe>::Init(PartitionOptions opts) {
     PA_DCHECK(!allow_aligned_alloc || !allow_ref_count);
 #endif
 
-#if PARTITION_EXTRAS_REQUIRED
+#if PA_EXTRAS_REQUIRED
     extras_size = 0;
     extras_offset = 0;
 
@@ -868,7 +869,7 @@ void PartitionRoot<thread_safe>::DumpStats(const char* partition_name,
   // skirmishes (on Windows, in particular). Allocate before locking below,
   // otherwise when PartitionAlloc is malloc() we get reentrancy issues. This
   // inflates reported values a bit for detailed dumps though, by 16kiB.
-  std::unique_ptr<uint32_t[]> direct_map_lengths = nullptr;
+  std::unique_ptr<uint32_t[]> direct_map_lengths;
   if (!is_light_dump) {
     direct_map_lengths =
         std::unique_ptr<uint32_t[]>(new uint32_t[kMaxReportableDirectMaps]);

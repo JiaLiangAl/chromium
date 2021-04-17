@@ -217,6 +217,46 @@ reviews. Googlers can read more about this at go/gwsq-gerrit.
   </summary>
 </histogram>
 
+<histogram name="Ash.BrowserDataMigrator.CopiedDataSizeMB" units="MB"
+    expires_after="M101">
+  <owner>ythjkt@chromium.org</owner>
+  <owner>hidehiko@chromium.org</owner>
+  <summary>
+    The size of data copied due to the migration i.e. extra space taken up
+    because of the migration. Only recorded if migration succeeded.
+  </summary>
+</histogram>
+
+<histogram name="Ash.BrowserDataMigrator.CreateDirectoryFailure"
+    enum="PlatformFileError" expires_after="M101">
+  <owner>ythjkt@chromium.org</owner>
+  <owner>hidehiko@chromium.org</owner>
+  <summary>
+    Records error if CreateDirectory failed to create a directory used to copy
+    files into as an intermediate destination during migration.
+  </summary>
+</histogram>
+
+<histogram name="Ash.BrowserDataMigrator.FinalStatus"
+    enum="BrowserDataMigratorFinalStatus" expires_after="M101">
+  <owner>ythjkt@chromium.org</owner>
+  <owner>hidehiko@chromium.org</owner>
+  <summary>
+    The final status of browser data migration. It is collected to monitor if
+    migration is working and if not used to determine which step is failing.
+  </summary>
+</histogram>
+
+<histogram name="Ash.BrowserDataMigrator.TotalTimeTakenMS" units="ms"
+    expires_after="M101">
+  <owner>ythjkt@chromium.org</owner>
+  <owner>hidehiko@chromium.org</owner>
+  <summary>
+    The time taken for migration to complete in ms. Only recorded if migration
+    succeeded.
+  </summary>
+</histogram>
+
 <histogram name="Ash.CaptureModeController.BarButtons.{TabletOrClamshell}"
     enum="CaptureModeBarButtonType" expires_after="2021-09-29">
   <owner>chinsenj@chromium.org</owner>
@@ -729,6 +769,11 @@ reviews. Googlers can read more about this at go/gwsq-gerrit.
 
 <histogram name="Ash.Desks.DesksCount2" units="units"
     expires_after="2021-11-29">
+  <obsolete>
+    Removed 04/2021. #enhanced-desks flag is removed from chrome://flags, which
+    means users will not able to switch to classic desks. Make this histogram
+    only for classic desks obsolete.
+  </obsolete>
   <owner>afakhry@chromium.org</owner>
   <owner>tclaiborne@chromium.org</owner>
   <summary>

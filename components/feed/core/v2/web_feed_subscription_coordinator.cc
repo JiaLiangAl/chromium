@@ -243,7 +243,7 @@ void WebFeedSubscriptionCoordinator::FollowWebFeedFromUrlStart(
     const WebFeedPageInformation& page_info,
     base::OnceCallback<void(FollowWebFeedResult)> callback) {
   DCHECK(model_);
-  WebFeedIndex::Entry entry = index_.FindWebFeedForUrl(page_info.url());
+  WebFeedIndex::Entry entry = index_.FindWebFeed(page_info);
 
   SubscribeToWebFeedTask::Request request;
   request.page_info = page_info;
@@ -344,7 +344,7 @@ void WebFeedSubscriptionCoordinator::FindWebFeedInfoForPage(
     base::OnceCallback<void(WebFeedMetadata)> callback) {
   if (!model_ && !loading_model_) {
     // No model loaded, try to answer the request without it.
-    WebFeedIndex::Entry entry = index_.FindWebFeedForUrl(page_info.url());
+    WebFeedIndex::Entry entry = index_.FindWebFeed(page_info);
     if (!entry.followed()) {
       LookupWebFeedDataAndRespond(
           entry.web_feed_id, /*maybe_page_info=*/nullptr, std::move(callback));
@@ -419,7 +419,7 @@ void WebFeedSubscriptionCoordinator::LookupWebFeedDataAndRespond(
   if (!id.empty()) {
     entry = index_.FindWebFeed(id);
   } else if (maybe_page_info) {
-    entry = index_.FindWebFeedForUrl(maybe_page_info->url());
+    entry = index_.FindWebFeed(*maybe_page_info);
     if (entry)
       id = entry.web_feed_id;
   }
@@ -572,11 +572,19 @@ void WebFeedSubscriptionCoordinator::GetAllSubscriptionsStart(
   std::move(callback).Run(std::move(result));
 }
 
+void WebFeedSubscriptionCoordinator::RefreshSubscriptions(
+    base::OnceCallback<void(RefreshResult)> callback) {
+  on_refresh_subscriptions_.push_back(std::move(callback));
+
+  WithModel(base::BindOnce(
+      &WebFeedSubscriptionCoordinator::FetchSubscribedWebFeedsStart,
+      base::Unretained(this)));
+}
+
 SubscriptionInfo WebFeedSubscriptionCoordinator::FindSubscriptionInfo(
     const WebFeedPageInformation& page_info) {
   DCHECK(model_);
-  return model_->GetSubscriptionInfo(
-      index_.FindWebFeedForUrl(page_info.url()).web_feed_id);
+  return model_->GetSubscriptionInfo(index_.FindWebFeed(page_info).web_feed_id);
 }
 SubscriptionInfo WebFeedSubscriptionCoordinator::FindSubscriptionInfoById(
     const std::string& web_feed_id) {
@@ -600,7 +608,7 @@ void WebFeedSubscriptionCoordinator::FetchRecommendedWebFeedsIfStale() {
 
 void WebFeedSubscriptionCoordinator::FetchRecommendedWebFeedsStart() {
   DCHECK(model_);
-  if (fetching_recommended_web_feeds_)
+  if (fetching_recommended_web_feeds_ || !IsSignedInAndWebFeedsEnabled())
     return;
   fetching_recommended_web_feeds_ = true;
   feed_stream_->GetTaskQueue().AddTask(
@@ -639,6 +647,10 @@ void WebFeedSubscriptionCoordinator::FetchSubscribedWebFeedsStart() {
   DCHECK(model_);
   if (fetching_subscribed_web_feeds_)
     return;
+  if (!IsSignedInAndWebFeedsEnabled()) {
+    CallRefreshCompleteCallbacks({});
+    return;
+  }
   fetching_subscribed_web_feeds_ = true;
   feed_stream_->GetTaskQueue().AddTask(
       std::make_unique<FetchSubscribedWebFeedsTask>(
@@ -656,6 +668,18 @@ void WebFeedSubscriptionCoordinator::FetchSubscribedWebFeedsComplete(
       result.status, result.subscribed_web_feeds.size());
   if (result.status == WebFeedRefreshStatus::kSuccess)
     model_->UpdateSubscribedFeeds(std::move(result.subscribed_web_feeds));
+
+  CallRefreshCompleteCallbacks(
+      RefreshResult{result.status == WebFeedRefreshStatus::kSuccess});
+}
+
+void WebFeedSubscriptionCoordinator::CallRefreshCompleteCallbacks(
+    RefreshResult result) {
+  std::vector<base::OnceCallback<void(RefreshResult)>> callbacks;
+  on_refresh_subscriptions_.swap(callbacks);
+  for (auto& callback : callbacks) {
+    std::move(callback).Run(result);
+  }
 }
 
 }  // namespace feed

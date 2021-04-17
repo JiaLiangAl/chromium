@@ -601,13 +601,6 @@ class KioskTest : public OobeBaseTest {
     PrepareAppLaunch();
 
     network_portal_detector_.SimulateDefaultNetworkState(network_status);
-
-    // TODO(crbug.com/1101318): LaunchAppUserCancel and
-    // LaunchAppWithNetworkConfigAccelerator are failing without skipping
-    // user creation screen. Need to investigate and fix this.
-    chromeos::WizardController::default_controller()
-        ->get_wizard_context_for_testing()
-        ->skip_to_login_for_tests = true;
     EXPECT_TRUE(LaunchApp(test_app_id()));
   }
 
@@ -1269,10 +1262,8 @@ IN_PROC_BROWSER_TEST_F(KioskTest, KioskEnableAfter2ndSigninScreen) {
   test::OobeJS().TapOnPath({"kiosk-enable", "close"});
 
   // Navigate to gaia sign in screen.
-  if (features::IsChildSpecificSigninEnabled()) {
-    OobeScreenWaiter(UserCreationView::kScreenId).Wait();
-    test::OobeJS().TapOnPath({"user-creation", "nextButton"});
-  }
+  OobeScreenWaiter(UserCreationView::kScreenId).Wait();
+  test::OobeJS().TapOnPath({"user-creation", "nextButton"});
 
   // Wait for signin screen to appear again.
   OobeScreenWaiter(GaiaView::kScreenId).Wait();
@@ -1308,8 +1299,7 @@ IN_PROC_BROWSER_TEST_F(KioskTest, MAYBE_DoNotLaunchWhenUntrusted) {
       "if (cr.ui.Oobe.getInstance().errorMessageWasShownForTesting_) {"
       "  window.domAutomationController.send(true);"
       "} else {"
-      "  cr.ui.Oobe.showSignInError = function("
-      "      loginAttempts, message, link, helpId) {"
+      "  cr.ui.Oobe.showSignInError = function(message, link, helpId) {"
       "    window.domAutomationController.send(true);"
       "  };"
       "}",

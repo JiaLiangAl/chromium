@@ -323,7 +323,7 @@ def UploadArtifacts(test_result, upload_bucket, run_identifier):
   viewUrl fields in intermediate_results.
   """
   artifacts = test_result.get('outputArtifacts', {})
-  for name, artifact in artifacts.iteritems():
+  for name, artifact in artifacts.items():
     # TODO(crbug.com/981349): Think of a more general way to
     # specify which artifacts deserve uploading.
     if name in [DIAGNOSTICS_NAME, MEASUREMENTS_NAME]:
@@ -407,10 +407,11 @@ def MeasurementToHistogram(name, measurement):
     unit = info.name
     samples = [s * info.conversion_factor for s in samples]
   if unit not in histogram.UNIT_NAMES:
-    raise ValueError(('Unknown unit: "%s". Valid options include:\n%s\n'
-                      'Valid legacy options include:\n%s') %
-                     (unit, pprint.pformat(histogram.UNIT_NAMES),
-                      pprint.pformat(legacy_unit_info.LEGACY_UNIT_INFO.keys())))
+    raise ValueError(
+        ('Unknown unit: "%s". Valid options include:\n%s\n'
+         'Valid legacy options include:\n%s') %
+        (unit, pprint.pformat(histogram.UNIT_NAMES),
+         pprint.pformat(list(legacy_unit_info.LEGACY_UNIT_INFO.keys()))))
   return histogram.Histogram.Create(name, unit, samples,
                                     description=description)
 
@@ -441,7 +442,7 @@ def ExtractMeasurements(test_result):
   if MEASUREMENTS_NAME in artifacts:
     with open(artifacts[MEASUREMENTS_NAME]['filePath']) as f:
       measurements = json.load(f)['measurements']
-    for name, measurement in measurements.iteritems():
+    for name, measurement in measurements.items():
       test_result['_histograms'].AddHistogram(
           MeasurementToHistogram(name, measurement))
     del artifacts[MEASUREMENTS_NAME]

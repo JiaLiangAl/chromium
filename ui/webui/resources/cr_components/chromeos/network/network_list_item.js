@@ -261,9 +261,10 @@ Polymer({
       return;
     }
 
-    // Temporarily place fetching managedProperties behind this flag so OOBE
-    // tests pass. TODO(crbug.com/1196507) Remove this check.
-    if (this.isUpdatedCellularUiEnabled_) {
+    // network-list-item supports dummy networkStates that may have an empty
+    // guid, such as those set by network-select. Only fetch managedProperties_
+    // if the network's guid is defined.
+    if (this.networkState.guid) {
       this.networkConfig_.getManagedProperties(this.networkState.guid)
           .then((response) => {
             this.managedProperties_ = response.result;
@@ -655,7 +656,9 @@ Polymer({
       this.onUnlockButtonClick_();
     } else if (this.item && this.item.hasOwnProperty('customItemName')) {
       this.fire('custom-item-selected', this.item);
-    } else if (this.isPSimPendingActivationNetwork_) {
+    } else if (
+        this.isPSimPendingActivationNetwork_ ||
+        this.isPSimUnavailableNetwork_ || this.isPSimActivatingNetwork_) {
       this.fireShowDetails_(event);
     } else {
       this.fire('selected', this.item);

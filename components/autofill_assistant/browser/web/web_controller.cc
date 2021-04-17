@@ -104,6 +104,20 @@ const char* const kSelectOptionScript =
       return true;
     })";
 
+// Javascript to select the option element in a select element. This does *not*
+// fire a "change" event.
+const char* const kSelectOptionElementScript =
+    R"(function(option) {
+      if (this.options == null) return false;
+      for (let i = 0; i < this.options.length; ++i) {
+        if (this.options[i] === option) {
+          this.options.selectedIndex = i;
+          return true;
+        }
+      }
+      return false;
+    })";
+
 // Javascript to highlight an element.
 const char* const kHighlightElementScript =
     R"(function() {
@@ -503,27 +517,39 @@ void WebController::OnWaitUntilElementIsStable(
   std::move(callback).Run(end_status, base::TimeTicks::Now() - wait_start_time);
 }
 
-void WebController::ClickOrTapElement(
+void WebController::JsClickElement(
     const ElementFinder::Result& element,
-    ClickType click_type,
     base::OnceCallback<void(const ClientStatus&)> callback) {
   auto wrapped_callback = GetAssistantActionRunningStateRetainingCallback(
       element, std::move(callback));
 
-  if (click_type == ClickType::JAVASCRIPT) {
-    devtools_client_->GetRuntime()->CallFunctionOn(
-        runtime::CallFunctionOnParams::Builder()
-            .SetObjectId(element.object_id())
-            .SetFunctionDeclaration(kClickElementScript)
-            .Build(),
-        element.node_frame_id(),
-        base::BindOnce(
-            &WebController::OnJavaScriptResult, weak_ptr_factory_.GetWeakPtr(),
-            base::BindOnce(&DecorateWebControllerStatus,
-                           WebControllerErrorInfoProto::CLICK_OR_TAP_ELEMENT,
-                           std::move(wrapped_callback))));
+  devtools_client_->GetRuntime()->CallFunctionOn(
+      runtime::CallFunctionOnParams::Builder()
+          .SetObjectId(element.object_id())
+          .SetFunctionDeclaration(kClickElementScript)
+          .Build(),
+      element.node_frame_id(),
+      base::BindOnce(
+          &WebController::OnJavaScriptResult, weak_ptr_factory_.GetWeakPtr(),
+          base::BindOnce(&DecorateWebControllerStatus,
+                         WebControllerErrorInfoProto::JS_CLICK_ELEMENT,
+                         std::move(wrapped_callback))));
+}
+
+void WebController::ClickOrTapElement(
+    ClickType click_type,
+    const ElementFinder::Result& element,
+    base::OnceCallback<void(const ClientStatus&)> callback) {
+  if (click_type != ClickType::TAP && click_type != ClickType::CLICK) {
+    ClientStatus status(INVALID_ACTION);
+    FillWebControllerErrorInfo(
+        WebControllerErrorInfoProto::CLICK_OR_TAP_ELEMENT, &status);
+    std::move(callback).Run(status);
     return;
   }
+
+  auto wrapped_callback = GetAssistantActionRunningStateRetainingCallback(
+      element, std::move(callback));
 
   std::unique_ptr<ElementPositionGetter> getter =
       std::make_unique<ElementPositionGetter>(
@@ -1054,6 +1080,27 @@ void WebController::SelectOption(
                      base::BindOnce(&DecorateWebControllerStatus,
                                     WebControllerErrorInfoProto::SELECT_OPTION,
                                     std::move(callback))));
+}
+
+void WebController::SelectOptionElement(
+    const ElementFinder::Result& option,
+    const ElementFinder::Result& element,
+    base::OnceCallback<void(const ClientStatus&)> callback) {
+  std::vector<std::unique_ptr<runtime::CallArgument>> argument;
+  AddRuntimeCallArgumentObjectId(option.object_id(), &argument);
+  devtools_client_->GetRuntime()->CallFunctionOn(
+      runtime::CallFunctionOnParams::Builder()
+          .SetObjectId(element.object_id())
+          .SetArguments(std::move(argument))
+          .SetFunctionDeclaration(std::string(kSelectOptionElementScript))
+          .SetReturnByValue(true)
+          .Build(),
+      element.node_frame_id(),
+      base::BindOnce(
+          &WebController::OnSelectOption, weak_ptr_factory_.GetWeakPtr(),
+          base::BindOnce(&DecorateWebControllerStatus,
+                         WebControllerErrorInfoProto::SELECT_OPTION_ELEMENT,
+                         std::move(callback))));
 }
 
 void WebController::OnSelectOption(

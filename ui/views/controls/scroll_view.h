@@ -65,8 +65,25 @@ class VIEWS_EXPORT ScrollView : public View, public ScrollBarController {
 
   class Observer {
    public:
-    // Called when |contents_| scrolled.
+    // Called when |contents_| scrolled. This can be triggered by each single
+    // event that is able to scroll the contents. KeyEvents like ui::VKEY_LEFT,
+    // ui::VKEY_RIGHT, or only ui::ET_MOUSEWHEEL will only trigger this function
+    // but not OnContentsScrollEnded below, since they do not belong to any
+    // events sequence. This function will also be triggered by each
+    // ui::ET_GESTURE_SCROLL_UPDATE event in the gesture scroll sequence or
+    // each ui::ET_MOUSEWHEEL event that associated with the ScrollEvent in the
+    // scroll events sequence while the OnContentsScrollEnded below will only be
+    // triggered once at the end of the events sequence.
     virtual void OnContentsScrolled() {}
+
+    // Called at the end of a sequence of events that are generated to scroll
+    // the contents. The gesture scroll sequence {ui::ET_GESTURE_SCROLL_BEGIN,
+    // ui::ET_GESTURE_SCROLL_UPDATE, ..., ui::ET_GESTURE_SCROLL_UPDATE,
+    // ui::ET_GESTURE_SCROLL_END or ui::ET_SCROLL_FLING_START} or the scroll
+    // events sequence {ui::ET_SCROLL_FLING_CANCEL, ui::ET_SCROLL, ...,
+    // ui::ET_SCROLL, ui::ET_SCROLL_FLING_START} both will trigger this function
+    // on the events sequence end.
+    virtual void OnContentsScrollEnded() {}
   };
 
   ScrollView();
@@ -163,11 +180,11 @@ class VIEWS_EXPORT ScrollView : public View, public ScrollBarController {
   int GetScrollBarLayoutWidth() const;
   int GetScrollBarLayoutHeight() const;
 
-  // Returns the horizontal/vertical scrollbar. This may return null.
-  ScrollBar* horizontal_scroll_bar() { return horiz_sb_.get(); }
-  const ScrollBar* horizontal_scroll_bar() const { return horiz_sb_.get(); }
-  ScrollBar* vertical_scroll_bar() { return vert_sb_.get(); }
-  const ScrollBar* vertical_scroll_bar() const { return vert_sb_.get(); }
+  // Returns the horizontal/vertical scrollbar.
+  ScrollBar* horizontal_scroll_bar() { return horiz_sb_; }
+  const ScrollBar* horizontal_scroll_bar() const { return horiz_sb_; }
+  ScrollBar* vertical_scroll_bar() { return vert_sb_; }
+  const ScrollBar* vertical_scroll_bar() const { return vert_sb_; }
 
   // Customize the scrollbar design. |horiz_sb| and |vert_sb| cannot be null.
   ScrollBar* SetHorizontalScrollBar(std::unique_ptr<ScrollBar> horiz_sb);
@@ -197,6 +214,11 @@ class VIEWS_EXPORT ScrollView : public View, public ScrollBarController {
   int GetScrollIncrement(ScrollBar* source,
                          bool is_page,
                          bool is_positive) override;
+  void OnScrollEnded() override;
+
+  bool is_scrolling() const {
+    return horiz_sb_->is_scrolling() || vert_sb_->is_scrolling();
+  }
 
  private:
   friend class test::ScrollViewTestApi;
@@ -287,10 +309,10 @@ class VIEWS_EXPORT ScrollView : public View, public ScrollBarController {
   View* header_viewport_ = nullptr;
 
   // Horizontal scrollbar.
-  std::unique_ptr<ScrollBar> horiz_sb_;
+  ScrollBar* horiz_sb_;
 
   // Vertical scrollbar.
-  std::unique_ptr<ScrollBar> vert_sb_;
+  ScrollBar* vert_sb_;
 
   // Corner view.
   std::unique_ptr<View> corner_view_;

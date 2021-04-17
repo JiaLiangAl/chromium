@@ -651,7 +651,7 @@ const base::Feature kSmartDimExperimentalComponent{
 //
 // NOTE: The feature is rolling out via a client-side Finch trial, so the actual
 // state will vary. See config in
-// chrome/browser/chromeos/sync/split_settings_sync_field_trial.cc
+// chrome/browser/ash/sync/split_settings_sync_field_trial.cc
 const base::Feature kSplitSettingsSync{"SplitSettingsSync",
                                        base::FEATURE_DISABLED_BY_DEFAULT};
 
@@ -663,11 +663,6 @@ const base::Feature kSystemLatinPhysicalTyping{
 // Enables Chrome OS Telemetry Extension.
 const base::Feature kTelemetryExtension{"TelemetryExtension",
                                         base::FEATURE_DISABLED_BY_DEFAULT};
-
-// Enables unified media view in Files app to browse recently-modified media
-// files from local local, Google Drive, and Android.
-const base::Feature kUnifiedMediaView{"UnifiedMediaView",
-                                      base::FEATURE_ENABLED_BY_DEFAULT};
 
 // Enables the updated cellular activation UI; see go/cros-cellular-design.
 const base::Feature kUpdatedCellularActivationUi{

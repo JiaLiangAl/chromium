@@ -10,7 +10,7 @@ import android.content.Intent;
 import androidx.annotation.IntDef;
 import androidx.annotation.Nullable;
 
-import org.chromium.components.external_intents.ExternalNavigationHandler.OverrideUrlLoadingResult;
+import org.chromium.base.Function;
 import org.chromium.content_public.browser.LoadUrlParams;
 import org.chromium.content_public.browser.WebContents;
 import org.chromium.ui.base.WindowAndroid;
@@ -95,17 +95,6 @@ public interface ExternalNavigationDelegate {
     int maybeHandleStartActivityIfNeeded(Intent intent, boolean proxy);
 
     /**
-     * Handle the incognito intent by loading it as a URL in the embedder, using the fallbackUrl if
-     * the intent URL cannot be handled by the embedder.
-     * @param intent The intent to be handled by the embedder.
-     * @param referrerUrl The referrer for the current navigation.
-     * @param fallbackUrl The fallback URL to load if the intent cannot be handled by the embedder.
-     * @return The OverrideUrlLoadingResult for the action taken by the embedder.
-     */
-    OverrideUrlLoadingResult handleIncognitoIntentTargetingSelf(
-            Intent intent, GURL referrerUrl, GURL fallbackUrl);
-
-    /**
      * Loads a URL as specified by |loadUrlParams| if possible. May fail in exceptional conditions
      * (e.g., if there is no valid tab).
      * @param loadUrlParams parameters of the URL to be loaded
@@ -179,20 +168,6 @@ public interface ExternalNavigationDelegate {
     boolean canCloseTabOnIncognitoIntentLaunch();
 
     /**
-     * @return whether this delegate supports creation of new tabs. If this method returns false,
-     * all URLs loaded by ExternalNavigationHandler will be loaded in the current tab and
-     * loadUrlInNewTab() will never be invoked.
-     */
-    boolean supportsCreatingNewTabs();
-
-    /**
-     * Loads |url| in a new tab.
-     * @param url The URL to load.
-     * @param launchIncognito whether the new tab should be incognito.
-     */
-    void loadUrlInNewTab(final GURL url, final boolean launchIncognito);
-
-    /**
      * @return whether it's possible to load a URL in the current tab.
      */
     boolean canLoadUrlInCurrentTab();
@@ -220,6 +195,33 @@ public interface ExternalNavigationDelegate {
      * @return Whether the Intent points to Autofill Assistant
      */
     boolean isIntentToAutofillAssistant(Intent intent);
+
+    /**
+     * Used by isIntentToAutofillAssistantAllowingApp() below.
+     */
+    @IntDef({IntentToAutofillAllowingAppResult.NONE,
+            IntentToAutofillAllowingAppResult.DEFER_TO_APP_NOW,
+            IntentToAutofillAllowingAppResult.DEFER_TO_APP_LATER})
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface IntentToAutofillAllowingAppResult {
+        int NONE = 0;
+        // Skip handling with Autofill Assistant and expect an external intent to be launched.
+        int DEFER_TO_APP_NOW = 1;
+        // Skip handling with Autofill Assistant and expect an external intent to be launched after
+        // a redirect.
+        int DEFER_TO_APP_LATER = 2;
+    }
+
+    /**
+     * @param params The external navigation params
+     * @param targetIntent The intent to launch
+     * @param canExternalAppHandleIntent The checker whether or not an external app can handle the
+     * provided intent
+     * @return Whether the Intent to Autofill Assistant allows override with an app.
+     */
+    @IntentToAutofillAllowingAppResult
+    int isIntentToAutofillAssistantAllowingApp(ExternalNavigationParams params, Intent targetIntent,
+            Function<Intent, Boolean> canExternalAppHandleIntent);
 
     /**
      * Gives the embedder a chance to handle the intent via the autofill assistant.

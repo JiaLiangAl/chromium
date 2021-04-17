@@ -20,8 +20,6 @@
 #include "build/build_config.h"
 #include "build/chromeos_buildflags.h"
 #include "chrome/browser/accessibility/accessibility_labels_service.h"
-#include "chrome/browser/android/metrics/android_incognito_session_durations_service.h"
-#include "chrome/browser/android/metrics/android_incognito_session_durations_service_factory.h"
 #include "chrome/browser/background/background_contents_service_factory.h"
 #include "chrome/browser/background_fetch/background_fetch_delegate_factory.h"
 #include "chrome/browser/background_fetch/background_fetch_delegate_impl.h"
@@ -407,10 +405,6 @@ const PrefService* OffTheRecordProfileImpl::GetPrefs() const {
   return prefs_.get();
 }
 
-PrefService* OffTheRecordProfileImpl::GetOffTheRecordPrefs() {
-  return prefs_.get();
-}
-
 DownloadManagerDelegate* OffTheRecordProfileImpl::GetDownloadManagerDelegate() {
   return DownloadCoreServiceFactory::GetForBrowserContext(this)
       ->GetDownloadManagerDelegate();
@@ -616,7 +610,7 @@ class GuestSessionProfile : public OffTheRecordProfileImpl {
   }
 
   void InitChromeOSPreferences() override {
-    chromeos_preferences_.reset(new chromeos::Preferences());
+    chromeos_preferences_ = std::make_unique<chromeos::Preferences>();
     chromeos_preferences_->Init(
         this, user_manager::UserManager::Get()->GetActiveUser());
   }
@@ -634,7 +628,7 @@ std::unique_ptr<Profile> Profile::CreateOffTheRecordProfile(
   std::unique_ptr<OffTheRecordProfileImpl> profile;
 #if BUILDFLAG(IS_CHROMEOS_ASH)
   if (parent->IsGuestSession() && otr_profile_id == OTRProfileID::PrimaryID())
-    profile.reset(new GuestSessionProfile(parent));
+    profile = std::make_unique<GuestSessionProfile>(parent);
 #endif
   if (!profile)
     profile = std::make_unique<OffTheRecordProfileImpl>(parent, otr_profile_id);

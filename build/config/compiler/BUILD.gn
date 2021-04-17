@@ -738,7 +738,11 @@ config("compiler") {
 
   if (is_clang && !is_nacl && show_includes) {
     assert(!is_win, "show_includes is not supported on Windows")
-    cflags += [ "-H" ]
+    cflags += [
+      "-H",
+      "-Xclang",
+      "-show-skipped-includes",
+    ]
   }
 
   # This flag enforces that member pointer base types are complete. It helps
@@ -749,11 +753,6 @@ config("compiler") {
   if (is_clang && !is_nacl && target_os != "chromeos" && !use_xcode_clang &&
       !is_chromeos_lacros && (is_win || use_custom_libcxx)) {
     cflags += [ "-fcomplete-member-pointers" ]
-  }
-
-  # TODO(crbug/1185183): Remove after next clang roll
-  if (is_clang && !is_nacl && is_linux && is_msan) {
-    cflags += [ "-flegacy-pass-manager" ]
   }
 
   # Pass the same C/C++ flags to the objective C/C++ compiler.

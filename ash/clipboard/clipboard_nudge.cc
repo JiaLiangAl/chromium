@@ -111,8 +111,7 @@ class ClipboardNudge::ClipboardNudgeView : public views::View {
       shortcut_icon = gfx::CreateVectorIcon(
           kClipboardSearchIcon, kKeyboardShortcutIconSize, icon_color);
     }
-    std::unique_ptr<views::ImageView> keyboard_shortcut_icon;
-    keyboard_shortcut_icon = std::make_unique<views::ImageView>();
+    auto keyboard_shortcut_icon = std::make_unique<views::ImageView>();
     keyboard_shortcut_icon->SetImage(shortcut_icon);
     keyboard_shortcut_icon->SetBorder(views::CreateEmptyBorder(2, 4, 0, -2));
 
@@ -163,7 +162,7 @@ ClipboardNudge::ClipboardNudge(ClipboardNudgeType nudge_type)
   views::Widget::InitParams params(
       views::Widget::InitParams::TYPE_WINDOW_FRAMELESS);
   params.z_order = ui::ZOrderLevel::kFloatingWindow;
-  params.activatable = views::Widget::InitParams::ACTIVATABLE_NO;
+  params.activatable = views::Widget::InitParams::Activatable::kNo;
   params.ownership = views::Widget::InitParams::NATIVE_WIDGET_OWNS_WIDGET;
   params.name = "ClipboardContextualNudge";
   params.layer_type = ui::LAYER_NOT_DRAWN;

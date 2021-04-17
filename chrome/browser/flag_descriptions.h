@@ -157,9 +157,6 @@ extern const char kAutofillAlwaysReturnCloudTokenizedCardDescription[];
 extern const char kAutofillAssistantChromeEntryName[];
 extern const char kAutofillAssistantChromeEntryDescription[];
 
-extern const char kAutofillCacheQueryResponsesName[];
-extern const char kAutofillCacheQueryResponsesDescription[];
-
 extern const char kAutofillEnableGoogleIssuedCardName[];
 extern const char kAutofillEnableGoogleIssuedCardDescription[];
 
@@ -211,9 +208,6 @@ extern const char kAvatarToolbarButtonDescription[];
 extern const char kBackForwardCacheName[];
 extern const char kBackForwardCacheDescription[];
 
-extern const char kBentoName[];
-extern const char kBentoDescription[];
-
 extern const char kBypassAppBannerEngagementChecksName[];
 extern const char kBypassAppBannerEngagementChecksDescription[];
 
@@ -259,8 +253,9 @@ extern const char kClipboardFilenamesDescription[];
 extern const char kConditionalTabStripAndroidName[];
 extern const char kConditionalTabStripAndroidDescription[];
 
-extern const char kClearCrossBrowsingContextGroupMainFrameNameName[];
-extern const char kClearCrossBrowsingContextGroupMainFrameNameDescription[];
+extern const char kClearCrossSiteCrossBrowsingContextGroupWindowNameName[];
+extern const char
+    kClearCrossSiteCrossBrowsingContextGroupWindowNameDescription[];
 
 #if BUILDFLAG(GOOGLE_CHROME_BRANDING)
 extern const char kChromeTipsInMainMenuName[];
@@ -899,6 +894,9 @@ extern const char kMojoLinuxChannelSharedMemDescription[];
 extern const char kMouseSubframeNoImplicitCaptureName[];
 extern const char kMouseSubframeNoImplicitCaptureDescription[];
 
+extern const char kMutingCompromisedCredentialsName[];
+extern const char kMutingCompromisedCredentialsDescription[];
+
 extern const char kUseOfHashAffiliationFetcherName[];
 extern const char kUseOfHashAffiliationFetcherDescription[];
 
@@ -962,9 +960,6 @@ extern const char kOmniboxCompactSuggestionsDescription[];
 
 extern const char kOmniboxDisableCGIParamMatchingName[];
 extern const char kOmniboxDisableCGIParamMatchingDescription[];
-
-extern const char kOmniboxDisplayTitleForCurrentUrlName[];
-extern const char kOmniboxDisplayTitleForCurrentUrlDescription[];
 
 extern const char kOmniboxDefaultTypedNavigationsToHttpsName[];
 extern const char kOmniboxDefaultTypedNavigationsToHttpsDescription[];
@@ -1427,9 +1422,6 @@ extern const char kTouchSelectionStrategyName[];
 extern const char kTouchSelectionStrategyDescription[];
 extern const char kTouchSelectionStrategyCharacter[];
 extern const char kTouchSelectionStrategyDirection[];
-
-extern const char kTouchpadOverscrollHistoryNavigationName[];
-extern const char kTouchpadOverscrollHistoryNavigationDescription[];
 
 extern const char kTraceUploadUrlName[];
 extern const char kTraceUploadUrlDescription[];
@@ -2283,6 +2275,9 @@ extern const char kBluetoothWbsDogfoodDescription[];
 extern const char kPreferConstantFrameRateName[];
 extern const char kPreferConstantFrameRateDescription[];
 
+extern const char kCategoricalSearchName[];
+extern const char kCategoricalSearchDescription[];
+
 extern const char kCdmFactoryDaemonName[];
 extern const char kCdmFactoryDaemonDescription[];
 
@@ -2807,9 +2802,6 @@ extern const char kUiDevToolsDescription[];
 extern const char kUiSlowAnimationsName[];
 extern const char kUiSlowAnimationsDescription[];
 
-extern const char kUnifiedMediaViewName[];
-extern const char kUnifiedMediaViewDescription[];
-
 extern const char kUseFakeDeviceForMediaStreamName[];
 extern const char kUseFakeDeviceForMediaStreamDescription[];
 
@@ -2914,6 +2906,9 @@ extern const char kRemoteCopyProgressNotificationDescription[];
 
 extern const char kDirectManipulationStylusName[];
 extern const char kDirectManipulationStylusDescription[];
+
+extern const char kWebuiFeedbackName[];
+extern const char kWebuiFeedbackDescription[];
 
 #endif  // defined(OS_WIN) || defined(OS_MAC) || defined(OS_LINUX) ||
         // defined(OS_CHROMEOS)

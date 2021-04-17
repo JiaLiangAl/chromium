@@ -189,9 +189,9 @@ class ShelfObserverIconTest : public AshTestBase {
 
   void SetUp() override {
     AshTestBase::SetUp();
-    observer_.reset(new TestShelfObserver(GetPrimaryShelf()));
-    shelf_view_test_.reset(
-        new ShelfViewTestAPI(GetPrimaryShelf()->GetShelfViewForTesting()));
+    observer_ = std::make_unique<TestShelfObserver>(GetPrimaryShelf());
+    shelf_view_test_ = std::make_unique<ShelfViewTestAPI>(
+        GetPrimaryShelf()->GetShelfViewForTesting());
     shelf_view_test_->SetAnimationDuration(
         base::TimeDelta::FromMilliseconds(1));
   }
@@ -351,7 +351,7 @@ class ShelfViewTest : public AshTestBase {
                   .width(),
               500);
 
-    test_api_.reset(new ShelfViewTestAPI(shelf_view_));
+    test_api_ = std::make_unique<ShelfViewTestAPI>(shelf_view_);
     test_api_->SetAnimationDuration(base::TimeDelta::FromMilliseconds(1));
 
     // Add a browser shortcut shelf item, as chrome does, for testing.
@@ -501,8 +501,10 @@ class ShelfViewTest : public AshTestBase {
                     bool progressively) {
     views::View* to = test_api_->GetViewAt(to_index);
     views::View* from = test_api_->GetViewAt(from_index);
-    int dist_x = to->x() - from->x();
-    int dist_y = to->y() - from->y();
+    gfx::Rect to_rect = to->GetMirroredBounds();
+    gfx::Rect from_rect = from->GetMirroredBounds();
+    int dist_x = to_rect.x() - from_rect.x();
+    int dist_y = to_rect.y() - from_rect.y();
     if (progressively) {
       int sgn = dist_x > 0 ? 1 : -1;
       dist_x = abs(dist_x);
@@ -672,7 +674,7 @@ TEST_P(LtrRtlShelfViewTest, EnforceDragType) {
 
 // Check that model changes are handled correctly while a shelf icon is being
 // dragged.
-TEST_F(ShelfViewTest, ModelChangesWhileDragging) {
+TEST_P(LtrRtlShelfViewTest, ModelChangesWhileDragging) {
   std::vector<std::pair<ShelfID, views::View*>> id_map;
   SetupForDragTest(&id_map);
 
@@ -714,7 +716,7 @@ TEST_F(ShelfViewTest, ModelChangesWhileDragging) {
 }
 
 // Check that 2nd drag from the other pointer would be ignored.
-TEST_F(ShelfViewTest, SimultaneousDrag) {
+TEST_P(LtrRtlShelfViewTest, SimultaneousDrag) {
   std::vector<std::pair<ShelfID, views::View*>> id_map;
   SetupForDragTest(&id_map);
 
@@ -899,7 +901,7 @@ TEST_F(ShelfViewDragToPinTest, DragAppAroundSeparator) {
 }
 
 // Ensure that clicking on one item and then dragging another works as expected.
-TEST_F(ShelfViewTest, ClickOneDragAnother) {
+TEST_P(LtrRtlShelfViewTest, ClickOneDragAnother) {
   std::vector<std::pair<ShelfID, views::View*>> id_map;
   SetupForDragTest(&id_map);
 
@@ -2096,7 +2098,7 @@ TEST_P(LtrRtlShelfViewTest, ReplacingDelegateCancelsContextMenu) {
 
 // Verifies that shelf is shown with the app list in fullscreen mode, and that
 // shelf app buttons are clickable.
-TEST_F(ShelfViewTest, ClickItemInFullscreen) {
+TEST_P(LtrRtlShelfViewTest, ClickItemInFullscreen) {
   ShelfID app_button_id = AddAppShortcut();
   auto selection_tracker_owned = std::make_unique<ShelfItemSelectionTracker>();
   ShelfItemSelectionTracker* selection_tracker = selection_tracker_owned.get();
@@ -2133,7 +2135,7 @@ TEST_F(ShelfViewTest, ClickItemInFullscreen) {
 
 // Verifies that shelf is shown with the app list in fullscreen mode, and that
 // shelf app buttons are tappable.
-TEST_F(ShelfViewTest, TapInFullscreen) {
+TEST_P(LtrRtlShelfViewTest, TapInFullscreen) {
   ShelfID app_button_id = AddAppShortcut();
   auto selection_tracker_owned = std::make_unique<ShelfItemSelectionTracker>();
   ShelfItemSelectionTracker* selection_tracker = selection_tracker_owned.get();

@@ -77,9 +77,6 @@ class COMPONENT_EXPORT(MIRRORING_SERVICE) Session final
   void RequestRefreshFrame() override;
   void CreateVideoEncodeAccelerator(
       media::cast::ReceiveVideoEncodeAcceleratorCallback callback) override;
-  void CreateVideoEncodeMemory(
-      size_t size,
-      media::cast::ReceiveVideoEncodeMemoryCallback callback) override;
 
   // Callbacks by media::cast::CastTransport::Client.
   void OnTransportStatusChanged(media::cast::CastTransportStatus status);
@@ -184,10 +181,10 @@ class COMPONENT_EXPORT(MIRRORING_SERVICE) Session final
   std::unique_ptr<AudioRtpStream> audio_stream_;
   std::unique_ptr<VideoRtpStream> video_stream_;
   std::unique_ptr<VideoCaptureClient> video_capture_client_;
-  scoped_refptr<media::cast::CastEnvironment> cast_environment_ = nullptr;
+  scoped_refptr<media::cast::CastEnvironment> cast_environment_;
   std::unique_ptr<media::cast::CastTransport> cast_transport_;
-  scoped_refptr<base::SingleThreadTaskRunner> audio_encode_thread_ = nullptr;
-  scoped_refptr<base::SingleThreadTaskRunner> video_encode_thread_ = nullptr;
+  scoped_refptr<base::SingleThreadTaskRunner> audio_encode_thread_;
+  scoped_refptr<base::SingleThreadTaskRunner> video_encode_thread_;
   std::unique_ptr<AudioCapturingCallback> audio_capturing_callback_;
   scoped_refptr<media::AudioInputDevice> audio_input_device_;
   std::unique_ptr<MediaRemoter> media_remoter_;

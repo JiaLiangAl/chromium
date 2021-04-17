@@ -73,6 +73,8 @@ constexpr size_t kP256X962Length = 1 /* type byte */ + 32 /* x */ + 32 /* y */;
 
 constexpr uint32_t kMinPinLength = 4;
 
+constexpr uint32_t kDefaultMaxTemplateFriendlyName = 64;
+
 // CTAP protocol device response code, as specified in
 // https://fidoalliance.org/specs/fido-v2.0-rd-20170927/fido-client-to-authenticator-protocol-v2.0-rd-20170927.html#authenticator-api
 enum class CtapDeviceResponseCode : uint8_t {
@@ -447,6 +449,7 @@ COMPONENT_EXPORT(DEVICE_FIDO) extern const char kCtap2_1Version[];
 COMPONENT_EXPORT(DEVICE_FIDO) extern const char kExtensionHmacSecret[];
 COMPONENT_EXPORT(DEVICE_FIDO) extern const char kExtensionCredProtect[];
 COMPONENT_EXPORT(DEVICE_FIDO) extern const char kExtensionLargeBlobKey[];
+COMPONENT_EXPORT(DEVICE_FIDO) extern const char kExtensionCredBlob[];
 
 // Maximum number of seconds the browser waits for Bluetooth authenticator to
 // send packets that advertises that the device is in pairing mode before

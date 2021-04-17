@@ -1023,9 +1023,8 @@ void AwContentBrowserClient::LogWebFeatureForCurrentPage(
     content::RenderFrameHost* render_frame_host,
     blink::mojom::WebFeature feature) {
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
-  page_load_metrics::mojom::PageLoadFeatures new_features({feature}, {}, {});
   page_load_metrics::MetricsWebContentsObserver::RecordFeatureUsage(
-      render_frame_host, new_features);
+      render_frame_host, feature);
 }
 
 bool AwContentBrowserClient::IsOriginTrialRequiredForAppCache(
@@ -1042,6 +1041,12 @@ AwContentBrowserClient::CreateSpeechRecognitionManagerDelegate() {
 
 bool AwContentBrowserClient::HasErrorPage(int http_status_code) {
   return http_status_code >= 400;
+}
+
+bool AwContentBrowserClient::SuppressDifferentOriginSubframeJSDialogs(
+    content::BrowserContext* browser_context) {
+  return base::FeatureList::IsEnabled(
+      features::kWebViewSuppressDifferentOriginSubframeJSDialogs);
 }
 
 // static

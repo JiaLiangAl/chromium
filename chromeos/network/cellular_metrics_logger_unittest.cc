@@ -96,7 +96,7 @@ class CellularMetricsLoggerTest : public testing::Test {
   }
 
   void SetUpMetricsLogger() {
-    cellular_metrics_logger_.reset(new CellularMetricsLogger());
+    cellular_metrics_logger_ = std::make_unique<CellularMetricsLogger>();
     cellular_metrics_logger_->Init(
         network_state_test_helper_.network_state_handler(),
         /* network_connection_handler */ nullptr,
@@ -651,6 +651,29 @@ TEST_F(CellularMetricsLoggerTest, CellularConnectResult) {
       static_cast<int>(
           feature_usage::FeatureUsageMetrics::Event::kUsedWithFailure),
       2);
+
+  // Set cellular networks to connected state.
+  service_client_test()->SetServiceProperty(kTestPSimCellularServicePath,
+                                            shill::kStateProperty,
+                                            base::Value(shill::kStateOnline));
+  service_client_test()->SetServiceProperty(kTestESimCellularServicePath,
+                                            shill::kStateProperty,
+                                            base::Value(shill::kStateOnline));
+  base::RunLoop().RunUntilIdle();
+
+  // Set cellular networks to disconnected state.
+  service_client_test()->SetServiceProperty(kTestPSimCellularServicePath,
+                                            shill::kStateProperty,
+                                            base::Value(shill::kStateOffline));
+  service_client_test()->SetServiceProperty(kTestESimCellularServicePath,
+                                            shill::kStateProperty,
+                                            base::Value(shill::kStateOffline));
+  base::RunLoop().RunUntilIdle();
+
+  // A connected to disconnected state change should not impact connection
+  // success.
+  histogram_tester_->ExpectTotalCount(kESimConnectionSuccessHistogram, 3);
+  histogram_tester_->ExpectTotalCount(kPSimConnectionSuccessHistogram, 3);
 }
 
 TEST_F(CellularMetricsLoggerTest, CellularTimeToConnectedTest) {

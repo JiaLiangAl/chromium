@@ -2550,6 +2550,7 @@ source_set("browser") {
       "accessibility/browser_accessibility_manager_android.cc",
       "accessibility/browser_accessibility_manager_android.h",
       "accessibility/browser_accessibility_state_impl_android.cc",
+      "accessibility/browser_accessibility_state_impl_android.h",
       "accessibility/captioning_controller.cc",
       "accessibility/captioning_controller.h",
       "accessibility/web_contents_accessibility_android.cc",
@@ -2841,10 +2842,7 @@ source_set("browser") {
       "renderer_host/delegated_frame_host.cc",
       "renderer_host/delegated_frame_host.h",
     ]
-    deps += [
-      "//components/viz/service/main",
-      "//ui/compositor",
-    ]
+    deps += [ "//ui/compositor" ]
     if (is_mac) {
       sources += [
         "renderer_host/browser_compositor_view_mac.h",

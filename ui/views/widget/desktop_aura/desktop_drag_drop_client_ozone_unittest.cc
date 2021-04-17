@@ -8,6 +8,8 @@
 #include <utility>
 
 #include "base/bind.h"
+#include "base/callback_helpers.h"
+#include "base/notreached.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/threading/thread_task_runner_handle.h"
 #include "ui/aura/client/drag_drop_delegate.h"
@@ -121,8 +123,8 @@ class FakePlatformWindow : public ui::PlatformWindow, public ui::WmDragHandler {
     drop_handler->OnDragLeave();
   }
 
-  void CloseDrag(uint32_t dnd_action) {
-    drag_handler_delegate_->OnDragFinished(dnd_action);
+  void CloseDrag(DragOperation operation) {
+    drag_handler_delegate_->OnDragFinished(operation);
     std::move(drag_loop_quit_closure_).Run();
   }
 
@@ -131,7 +133,7 @@ class FakePlatformWindow : public ui::PlatformWindow, public ui::WmDragHandler {
     int updated_operation = OnDragMotion(gfx::PointF(), operation);
     OnDragDrop(nullptr);
     OnDragLeave();
-    CloseDrag(updated_operation);
+    CloseDrag(ui::PreferredDragOperation(updated_operation));
   }
 
  private:
@@ -201,6 +203,11 @@ class FakeDragDropDelegate : public aura::client::DragDropDelegate {
     return destination_operation_;
   }
 
+  DropCallback GetDropCallback(const ui::DropTargetEvent& event) override {
+    NOTIMPLEMENTED();
+    return base::NullCallback();
+  }
+
   int num_enters_;
   int num_updates_;
   int num_exits_;
@@ -224,7 +231,7 @@ class DesktopDragDropClientOzoneTest : public ViewsTestBase {
     platform_window_->set_modifiers(modifiers);
   }
 
-  int StartDragAndDrop(int operation) {
+  DragOperation StartDragAndDrop(int allowed_operations) {
     auto data = std::make_unique<ui::OSExchangeData>();
     data->SetString(u"Test");
     SkBitmap drag_bitmap;
@@ -235,7 +242,7 @@ class DesktopDragDropClientOzoneTest : public ViewsTestBase {
 
     return client_->StartDragAndDrop(
         std::move(data), widget_->GetNativeWindow()->GetRootWindow(),
-        widget_->GetNativeWindow(), gfx::Point(), operation,
+        widget_->GetNativeWindow(), gfx::Point(), allowed_operations,
         ui::mojom::DragEventSource::kMouse);
   }
 
@@ -291,10 +298,10 @@ TEST_F(DesktopDragDropClientOzoneTest, DISABLED_StartDrag) {
   // Set the operation which the destination can accept.
   dragdrop_delegate_->SetOperation(DragOperation::kCopy);
   // Start Drag and Drop with the operations suggested.
-  int operation = StartDragAndDrop(ui::DragDropTypes::DRAG_COPY |
-                                   ui::DragDropTypes::DRAG_MOVE);
+  DragOperation operation = StartDragAndDrop(ui::DragDropTypes::DRAG_COPY |
+                                             ui::DragDropTypes::DRAG_MOVE);
   // The |operation| decided through negotiation should be 'DRAG_COPY'.
-  EXPECT_EQ(ui::DragDropTypes::DRAG_COPY, operation);
+  EXPECT_EQ(DragOperation::kCopy, operation);
 
   EXPECT_EQ(1, dragdrop_delegate_->num_enters());
   EXPECT_EQ(1, dragdrop_delegate_->num_updates());
@@ -310,10 +317,10 @@ TEST_F(DesktopDragDropClientOzoneTest, DISABLED_StartDragCtrlPressed) {
   // Set the operation which the destination can accept.
   dragdrop_delegate_->SetOperation(DragOperation::kCopy);
   // Start Drag and Drop with the operations suggested.
-  int operation = StartDragAndDrop(ui::DragDropTypes::DRAG_COPY |
-                                   ui::DragDropTypes::DRAG_MOVE);
+  DragOperation operation = StartDragAndDrop(ui::DragDropTypes::DRAG_COPY |
+                                             ui::DragDropTypes::DRAG_MOVE);
   // The |operation| decided through negotiation should be 'DRAG_COPY'.
-  EXPECT_EQ(ui::DragDropTypes::DRAG_COPY, operation);
+  EXPECT_EQ(DragOperation::kCopy, operation);
 
   EXPECT_EQ(1, dragdrop_delegate_->num_enters());
   EXPECT_EQ(1, dragdrop_delegate_->num_updates());

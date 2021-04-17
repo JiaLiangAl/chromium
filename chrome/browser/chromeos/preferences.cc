@@ -5,6 +5,7 @@
 #include "chrome/browser/chromeos/preferences.h"
 
 #include <limits>
+#include <memory>
 #include <vector>
 
 #include "ash/constants/ash_features.h"
@@ -33,6 +34,8 @@
 #include "chrome/browser/ash/login/session/user_session_manager.h"
 #include "chrome/browser/ash/profiles/profile_helper.h"
 #include "chrome/browser/ash/settings/cros_settings.h"
+#include "chrome/browser/ash/sync/split_settings_sync_field_trial.h"
+#include "chrome/browser/ash/sync/turn_sync_on_helper.h"
 #include "chrome/browser/ash/system/input_device_settings.h"
 #include "chrome/browser/ash/system/timezone_resolver_manager.h"
 #include "chrome/browser/ash/system/timezone_util.h"
@@ -41,8 +44,6 @@
 #include "chrome/browser/chrome_notification_types.h"
 #include "chrome/browser/chromeos/input_method/input_method_persistence.h"
 #include "chrome/browser/chromeos/input_method/input_method_syncer.h"
-#include "chrome/browser/chromeos/sync/split_settings_sync_field_trial.h"
-#include "chrome/browser/chromeos/sync/turn_sync_on_helper.h"
 #include "chrome/browser/download/download_prefs.h"
 #include "chrome/browser/prefs/pref_service_syncable_util.h"
 #include "chrome/browser/ui/ash/system_tray_client.h"
@@ -639,8 +640,8 @@ void Preferences::Init(Profile* profile, const user_manager::User* user) {
   if (user->is_active())
     input_method_manager_->SetState(ime_state_);
 
-  input_method_syncer_.reset(
-      new input_method::InputMethodSyncer(prefs, ime_state_));
+  input_method_syncer_ =
+      std::make_unique<input_method::InputMethodSyncer>(prefs, ime_state_);
   input_method_syncer_->Initialize();
 
   // If a guest is logged in, initialize the prefs as if this is the first
@@ -663,8 +664,8 @@ void Preferences::InitUserPrefsForTesting(
 
   InitUserPrefs(prefs);
 
-  input_method_syncer_.reset(
-      new input_method::InputMethodSyncer(prefs, ime_state_));
+  input_method_syncer_ =
+      std::make_unique<input_method::InputMethodSyncer>(prefs, ime_state_);
   input_method_syncer_->Initialize();
 }
 

@@ -21,6 +21,8 @@ BLINK_COMMON_EXPORT extern const base::Feature
 BLINK_COMMON_EXPORT extern const base::Feature kCOLRV1Fonts;
 BLINK_COMMON_EXPORT extern const base::Feature kCSSContainerQueries;
 BLINK_COMMON_EXPORT extern const base::Feature kGMSCoreEmoji;
+BLINK_COMMON_EXPORT extern const base::Feature
+    kHandwritingRecognitionWebPlatformApi;
 BLINK_COMMON_EXPORT extern const base::Feature kPaintHolding;
 BLINK_COMMON_EXPORT extern const base::Feature kPaintHoldingCrossOrigin;
 BLINK_COMMON_EXPORT extern const base::Feature
@@ -175,6 +177,10 @@ BLINK_COMMON_EXPORT extern const base::Feature kDawn2dCanvas;
 BLINK_COMMON_EXPORT extern const base::Feature kWebviewAccelerateSmallCanvases;
 
 BLINK_COMMON_EXPORT extern const base::Feature kDiscardCodeCacheAfterFirstUse;
+
+// TODO(crbug.com/920069): Remove OffsetParentNewSpecBehavior after the feature
+// is in stable with no issues.
+BLINK_COMMON_EXPORT extern const base::Feature kOffsetParentNewSpecBehavior;
 
 BLINK_COMMON_EXPORT extern const base::Feature kFontPreloadingDelaysRendering;
 BLINK_COMMON_EXPORT extern const base::FeatureParam<int>
@@ -379,6 +385,11 @@ BLINK_COMMON_EXPORT extern const base::Feature
     kBlockCrossOriginTopNavigationToDiffentScheme;
 
 BLINK_COMMON_EXPORT extern const base::Feature kJXL;
+
+// Forces same-process display:none cross-origin iframes to be throttled in the
+// same manner that OOPIFs are.
+BLINK_COMMON_EXPORT extern const base::Feature
+    kThrottleDisplayNoneAndVisibilityHiddenCrossOriginIframes;
 
 }  // namespace features
 }  // namespace blink

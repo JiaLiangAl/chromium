@@ -14,8 +14,10 @@
 #include "ash/test/ash_test_base.h"
 #include "ash/test_shell_delegate.h"
 #include "base/bind.h"
+#include "base/callback_helpers.h"
 #include "base/command_line.h"
 #include "base/location.h"
+#include "base/notreached.h"
 #include "base/optional.h"
 #include "base/run_loop.h"
 #include "base/strings/utf_string_conversions.h"
@@ -164,17 +166,17 @@ class TestDragDropController : public DragDropController {
     drag_string_.clear();
   }
 
-  int StartDragAndDrop(std::unique_ptr<ui::OSExchangeData> data,
-                       aura::Window* root_window,
-                       aura::Window* source_window,
-                       const gfx::Point& location,
-                       int operation,
-                       ui::mojom::DragEventSource source) override {
+  DragOperation StartDragAndDrop(std::unique_ptr<ui::OSExchangeData> data,
+                                 aura::Window* root_window,
+                                 aura::Window* source_window,
+                                 const gfx::Point& location,
+                                 int allowed_operations,
+                                 ui::mojom::DragEventSource source) override {
     drag_start_received_ = true;
     data->GetString(&drag_string_);
     return DragDropController::StartDragAndDrop(std::move(data), root_window,
                                                 source_window, location,
-                                                operation, source);
+                                                allowed_operations, source);
   }
 
   void DragUpdate(aura::Window* target,
@@ -293,6 +295,11 @@ class EventTargetTestDelegate : public aura::client::DragDropDelegate {
     return DragOperation::kMove;
   }
 
+  DropCallback GetDropCallback(const ui::DropTargetEvent& event) override {
+    NOTIMPLEMENTED();
+    return base::NullCallback();
+  }
+
  private:
   aura::Window* const window_;
   State state_{State::kNotInvoked};
@@ -360,10 +367,10 @@ class TestToplevelWindowDragDelegate : public ToplevelWindowDragDelegate {
     source_ = source;
   }
 
-  int OnToplevelWindowDragDropped() override {
+  DragOperation OnToplevelWindowDragDropped() override {
     EXPECT_EQ(State::kDragStartedInvoked, state_);
     state_ = State::kDragDroppedInvoked;
-    return ui::DragDropTypes::DRAG_MOVE;
+    return DragOperation::kMove;
   }
 
   void OnToplevelWindowDragCancelled() override {
@@ -1414,12 +1421,12 @@ TEST_F(DragDropControllerTest, DragTabChangesDragOperationToMove) {
                                 base::Unretained(&generator)));
 
   drag_drop_controller_->set_should_block_during_drag_drop(true);
-  int operation = drag_drop_controller_->StartDragAndDrop(
+  DragOperation operation = drag_drop_controller_->StartDragAndDrop(
       std::make_unique<ui::OSExchangeData>(), window->GetRootWindow(), window,
       gfx::Point(5, 5), ui::DragDropTypes::DRAG_NONE,
       ui::mojom::DragEventSource::kMouse);
 
-  EXPECT_EQ(operation, ui::DragDropTypes::DRAG_MOVE);
+  EXPECT_EQ(operation, DragOperation::kMove);
 }
 
 TEST_F(DragDropControllerTest, ToplevelWindowDragDelegate) {

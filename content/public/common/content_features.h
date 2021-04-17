@@ -41,7 +41,7 @@ CONTENT_EXPORT extern const base::Feature kCacheInlineScriptCode;
 CONTENT_EXPORT extern const base::Feature kCanvas2DImageChromium;
 CONTENT_EXPORT extern const base::Feature kCapabilityDelegationPaymentRequest;
 CONTENT_EXPORT extern const base::Feature
-    kClearCrossBrowsingContextGroupMainFrameName;
+    kClearCrossSiteCrossBrowsingContextGroupWindowName;
 CONTENT_EXPORT extern const base::Feature kClickPointerEvent;
 CONTENT_EXPORT extern const base::Feature kCompositeBGColorAnimation;
 CONTENT_EXPORT extern const base::Feature kCodeCacheDeletionWithoutFilter;
@@ -73,7 +73,6 @@ CONTENT_EXPORT extern const base::Feature
 #endif
 CONTENT_EXPORT extern const base::Feature kFractionalScrollOffsets;
 CONTENT_EXPORT extern const base::Feature kGreaseUACH;
-CONTENT_EXPORT extern const base::Feature kHandwritingRecognitionEnabled;
 CONTENT_EXPORT extern const base::Feature kHistoryManipulationIntervention;
 CONTENT_EXPORT extern const base::Feature kHistoryPreventSandboxedNavigation;
 CONTENT_EXPORT extern const base::Feature kIdleDetection;

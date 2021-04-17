@@ -617,7 +617,7 @@ are declared in tools/grit/grit_rule.gni.
           </message>
 
           <message name="IDS_CONTENT_CONTEXT_REMOVELINKTOTEXT" desc="The name of the Remove Highlights command in the content area context menu">
-            Remove highlights
+            Remove highlight
           </message>
 
           <message name="IDS_CONTENT_CONTEXT_SAVEIMAGEAS" desc="The name of the Save Image As command in the content area context menu">
@@ -846,7 +846,7 @@ are declared in tools/grit/grit_rule.gni.
           </message>
 
           <message name="IDS_CONTENT_CONTEXT_REMOVELINKTOTEXT" desc="In TitleCase: The name of the Remove Highlights command in the content area context menu">
-            Remove Highlights
+            Remove Highlight
           </message>
 
           <message name="IDS_CONTENT_CONTEXT_SAVEIMAGEAS" desc="In Title Case: The name of the Save Image As command in the content area context menu">
@@ -5772,7 +5772,7 @@ Keep your key file in a safe place. You will need it to create new versions of y
         Up to <ph name="DISCOUNT_UP_TO_AMOUNT">$1<ex>15%</ex></ph> off
       </message>
       <message name="IDS_NTP_MODULES_CART_DISCOUNT_CONSENT_CONTENT" desc="Text shown on the consent card for rule-based discount asking if users would like to give their consent to the feature.">
-        Ask Google to find discounts on what you’ve added to your carts?
+        Allow Google to find discounts on what you add to your carts?
       </message>
       <message name="IDS_NTP_MODULES_CART_DISCOUNT_CONSENT_ACCEPT" desc="Text shown on the accept button of the consent card for rule-based discount. By clicking this button, users have chosen to opt in the feature and let Google get discounts for them. See consent request in IDS_NTP_MODULES_CART_DISCOUNT_CONSENT_CONTENT.">
         Get discounts
@@ -7188,16 +7188,13 @@ Keep your key file in a safe place. You will need it to create new versions of y
         </message>
       </if>
 
-      <!-- Mac First-run dialog -->
+      <!-- First-run dialog -->
       <message name="IDS_FR_ENABLE_LOGGING" desc="The label of the checkbox to enable/disable crash and user metrics logging">
         Automatically send usage statistics and crash reports to Google
       </message>
 
       <!-- Mac First-run dialog messages -->
       <if expr="is_macosx">
-        <message name="IDS_FIRSTRUN_DLG_MAC_WINDOW_TITLE" desc="Window title of First Run Title on OS X - displayed in Window title bar">
-          Welcome to <ph name="PRODUCT_NAME">$1<ex>Google Chrome</ex></ph>
-        </message>
         <message name="IDS_FIRSTRUN_DLG_MAC_COMPLETE_INSTALLATION_LABEL" desc="Label at top of Dialog noting what's going to happen">
           <ph name="PRODUCT_NAME">$1<ex>Google Chrome</ex></ph> is ready to complete your installation
         </message>
@@ -9922,10 +9919,10 @@ Please help our engineers fix this problem. Tell us what happened right before y
         Share an application window
       </message>
       <message name="IDS_DESKTOP_MEDIA_PICKER_TEXT" desc="Text for the window picker dialog shown when desktop capture is requested by an app to be used by the app itself.">
-        <ph name="APP_NAME">$1<ex>Google Hangouts</ex></ph> wants to share the contents of your screen.
+        The extension "<ph name="APP_NAME">$1<ex>Google Hangouts</ex></ph>" wants to share the contents of your screen.
       </message>
       <message name="IDS_DESKTOP_MEDIA_PICKER_TEXT_DELEGATED" desc="Text for the window picker dialog shown when desktop capture is requested by an app to be used by a tab.">
-        <ph name="APP_NAME">$1<ex>Google Hangouts</ex></ph> wants to share the contents of your screen with <ph name="TARGET_NAME">$2<ex>https://google.com</ex></ph>.
+        The extension "<ph name="APP_NAME">$1<ex>Google Hangouts</ex></ph>" wants to share the contents of your screen with <ph name="TARGET_NAME">$2<ex>https://google.com</ex></ph>.
       </message>
       <message name="IDS_DESKTOP_MEDIA_PICKER_AUDIO_SHARE" desc="Text for the checkbox on the window picker dialog, when checked, audio will be shared, otherwise just video sharing">
         Share audio
@@ -10414,19 +10411,19 @@ Please help our engineers fix this problem. Tell us what happened right before y
     </message>
 
     <!-- Device descriptions for devices defined by policy with wildcards. -->
-    <message name="IDS_DEVICE_DESCRIPTION_FOR_PRODUCT_ID_AND_VENDOR_NAME" desc="String describing a device by its vendor name when only the numeric product ID is available.">
+    <message name="IDS_USB_POLICY_DEVICE_DESCRIPTION_FOR_PRODUCT_ID_AND_VENDOR_NAME" desc="String describing a device by its vendor name when only the numeric product ID is available.">
       Unknown product <ph name="PRODUCT_ID">$1<ex>123</ex></ph> from <ph name="VENDOR_NAME">$2<ex>Google</ex></ph>
     </message>
-    <message name="IDS_DEVICE_DESCRIPTION_FOR_PRODUCT_ID_AND_VENDOR_ID" desc="String describing a device when only the numeric product ID and vendor ID are available.">
+    <message name="IDS_USB_POLICY_DEVICE_DESCRIPTION_FOR_PRODUCT_ID_AND_VENDOR_ID" desc="String describing a device when only the numeric product ID and vendor ID are available.">
       Unknown product <ph name="PRODUCT_ID">$1<ex>123</ex></ph> from vendor <ph name="VENDOR_ID">$2<ex>123</ex></ph>
     </message>
-    <message name="IDS_DEVICE_DESCRIPTION_FOR_VENDOR_ID" desc="String describing devices from a vendor by ID.">
+    <message name="IDS_USB_POLICY_DEVICE_DESCRIPTION_FOR_VENDOR_ID" desc="String describing devices from a vendor by ID.">
       Devices from vendor <ph name="VENDOR_ID">$1<ex>123</ex></ph>
     </message>
-    <message name="IDS_DEVICE_DESCRIPTION_FOR_VENDOR_NAME" desc="String describing devices from a vendor.">
+    <message name="IDS_USB_POLICY_DEVICE_DESCRIPTION_FOR_VENDOR_NAME" desc="String describing devices from a vendor.">
       Devices from <ph name="VENDOR_NAME">$1<ex>Google</ex></ph>
     </message>
-    <message name="IDS_DEVICE_DESCRIPTION_FOR_ANY_VENDOR" desc="String describing devices from any vendor.">
+    <message name="IDS_USB_POLICY_DEVICE_DESCRIPTION_FOR_ANY_VENDOR" desc="String describing devices from any vendor.">
       Devices from any vendor
     </message>
 
@@ -10452,6 +10449,21 @@ Please help our engineers fix this problem. Tell us what happened right before y
       </message>
       <message name="IDS_SERIAL_PORT_CHOOSER_LOADING_LABEL_TOOLTIP" desc="Tooltip for the label that the browser is loading the list of serial devices.">
         Finding serial devices...
+      </message>
+      <message name="IDS_SERIAL_POLICY_DESCRIPTION_FOR_USB_PRODUCT_ID_AND_VENDOR_NAME" desc="String describing a USB device permission granted by enterprise policy to a site when the vendor name is available by a numeric product ID must be used.">
+        USB devices with product ID <ph name="PRODUCT_ID">$1<ex>0x12AB</ex></ph> from <ph name="VENDOR_NAME">$2<ex>Google</ex></ph>
+      </message>
+      <message name="IDS_SERIAL_POLICY_DESCRIPTION_FOR_USB_PRODUCT_ID_AND_VENDOR_ID" desc="String describing a USB device permission granted by enterprise policy to a site when only the numeric product ID and vendor ID are available.">
+        USB devices with product ID <ph name="PRODUCT_ID">$1<ex>0x12AB</ex></ph> from vendor <ph name="VENDOR_ID">$2<ex>0x12AB</ex></ph>
+      </message>
+      <message name="IDS_SERIAL_POLICY_DESCRIPTION_FOR_USB_VENDOR_ID" desc="String describing a USB device permission granted by enterprise policy to a site for all devices from a single vendor when only the numeric vendor ID is available.">
+        USB devices from vendor <ph name="VENDOR_ID">$1<ex>123</ex></ph>
+      </message>
+      <message name="IDS_SERIAL_POLICY_DESCRIPTION_FOR_USB_VENDOR_NAME" desc="String describing a USB device permission granted by enterprise policy to a site for all devices from a single vendor.">
+        USB devices from <ph name="VENDOR_NAME">$1<ex>Google</ex></ph>
+      </message>
+      <message name="IDS_SERIAL_POLICY_DESCRIPTION_FOR_ANY_PORT" desc="String describing a serial port permission granted by enterprise policy for all ports.">
+        Any serial port
       </message>
     </if>
 

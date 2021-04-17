@@ -104,8 +104,15 @@ history_clusters::mojom::MemoryPtr ValueToMemory(
     const base::Value& value) {
   auto memory = history_clusters::mojom::Memory::New();
   memory->id = base::UnguessableToken::Create();
+
   memory->top_visits = FindListKeyAndCast<history_clusters::mojom::VisitPtr>(
       value, "visitIds", base::BindRepeating(&ValueToVisit, visits));
+
+  memory->keywords = FindListKeyAndCast<std::string>(
+      value, "keywords", base::BindRepeating([](const base::Value& value) {
+        return value.GetIfString() ? *value.GetIfString() : "";
+      }));
+
   // TODO(manukh) fill out:
   //  |id|
   //  |related_searches|
@@ -120,7 +127,7 @@ history_clusters::Memories ValueToMemories(
     const std::vector<history_clusters::MemoriesVisit>& visits,
     const base::Value& value) {
   return FindListKeyAndCast<history_clusters::mojom::MemoryPtr>(
-      value, "memories", base::BindRepeating(&ValueToMemory, visits));
+      value, "clusters", base::BindRepeating(&ValueToMemory, visits));
 }
 
 }  // namespace
@@ -136,7 +143,7 @@ MemoriesRemoteModelHelper::~MemoriesRemoteModelHelper() = default;
 void MemoriesRemoteModelHelper::GetMemories(
     const std::vector<MemoriesVisit>& visits,
     MemoriesCallback callback) {
-  const GURL endpoint(history_clusters::RemoteModelEndpoint());
+  const GURL endpoint(history_clusters::RemoteModelEndpointForDebugging());
   if (!endpoint.is_valid() || visits.empty()) {
     std::move(callback).Run({});
     return;

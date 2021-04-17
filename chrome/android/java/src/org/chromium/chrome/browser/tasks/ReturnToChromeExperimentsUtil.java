@@ -19,12 +19,12 @@ import org.chromium.base.library_loader.LibraryLoader;
 import org.chromium.base.metrics.RecordHistogram;
 import org.chromium.base.metrics.RecordUserAction;
 import org.chromium.chrome.browser.ActivityTabProvider;
+import org.chromium.chrome.browser.AppHooks;
 import org.chromium.chrome.browser.app.ChromeActivity;
 import org.chromium.chrome.browser.flags.CachedFeatureFlags;
 import org.chromium.chrome.browser.flags.ChromeFeatureList;
 import org.chromium.chrome.browser.flags.IntCachedFieldTrialParameter;
 import org.chromium.chrome.browser.homepage.HomepageManager;
-import org.chromium.chrome.browser.locale.LocaleManager;
 import org.chromium.chrome.browser.omnibox.OmniboxStub;
 import org.chromium.chrome.browser.omnibox.UrlFocusChangeListener;
 import org.chromium.chrome.browser.tab.Tab;
@@ -315,7 +315,7 @@ public final class ReturnToChromeExperimentsUtil {
 
             // These are duplicated here but would have been recorded by LocationBarLayout#loadUrl.
             RecordUserAction.record("MobileOmniboxUse");
-            LocaleManager.getInstance().recordLocaleBasedSearchMetrics(
+            AppHooks.get().getLocaleManager().recordLocaleBasedSearchMetrics(
                     false, url, params.getTransitionType());
         }
 
@@ -370,13 +370,6 @@ public final class ReturnToChromeExperimentsUtil {
      */
     public static boolean shouldShowStartSurfaceHomeAsNTP(boolean incognito, boolean isTablet) {
         return !incognito && shouldShowStartSurfaceAsTheHomePageOnPhone(isTablet);
-    }
-
-    /**
-     * @return Whether hides the home button on an incognito tab.
-     */
-    public static boolean shouldHideHomeButtonForStartSurface(boolean incognito, boolean isTablet) {
-        return incognito && shouldShowStartSurfaceAsTheHomePageOnPhone(isTablet);
     }
 
     /**

@@ -244,7 +244,10 @@ public class StatusView extends LinearLayout {
                                     () -> { newImage.startTransition(ICON_ANIMATION_DURATION_MS); })
                             .withEndAction(() -> {
                                 mIconView.setRotation(0);
-                                mIconView.setImageDrawable(targetIcon);
+                                // Only update status icon if it is still the current icon.
+                                if (mStatusIconDrawable == targetIcon) {
+                                    mIconView.setImageDrawable(targetIcon);
+                                }
                             })
                             .start();
                 }
@@ -304,7 +307,6 @@ public class StatusView extends LinearLayout {
     void setStatusIconResources(
             @Nullable Drawable statusIconDrawable, @IconTransitionType int transitionType) {
         mStatusIconDrawable = statusIconDrawable;
-        requestLayout();
         animateStatusIcon(transitionType);
     }
 

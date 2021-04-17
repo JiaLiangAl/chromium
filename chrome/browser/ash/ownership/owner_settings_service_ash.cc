@@ -351,7 +351,7 @@ bool OwnerSettingsServiceAsh::CommitTentativeDeviceSettings(
                << user_id_;
     return false;
   }
-  tentative_settings_.reset(new em::ChromeDeviceSettingsProto);
+  tentative_settings_ = std::make_unique<em::ChromeDeviceSettingsProto>();
   CHECK(tentative_settings_->ParseFromString(policy->policy_value()));
   StorePendingChanges();
   return true;
@@ -535,9 +535,8 @@ void OwnerSettingsServiceAsh::UpdateDeviceSettings(
   } else if (path == kAccountsPrefDeviceLocalAccountAutoLoginDelay) {
     em::DeviceLocalAccountsProto* device_local_accounts =
         settings.mutable_device_local_accounts();
-    int delay;
-    if (value.GetAsInteger(&delay))
-      device_local_accounts->set_auto_login_delay(delay);
+    if (value.is_int())
+      device_local_accounts->set_auto_login_delay(value.GetInt());
     else
       NOTREACHED();
   } else if (path == kAccountsPrefDeviceLocalAccountAutoLoginBailoutEnabled) {

@@ -1700,7 +1700,7 @@
           'linux-xenial',
         ],
         'additional_compile_targets': [
-          'gn_all',
+          'all',
         ],
         'test_suites': {
           'gtest_tests': 'linux_chromeos_gtests',
@@ -2619,32 +2619,6 @@
           'scripts': 'check_network_annotations_script',
         }
       },
-      'Linux Builder (goma cache silo)': {
-        # Copied from
-        # https://source.chromium.org/chromium/chromium/src/+/master:testing/buildbot/waterfalls.pyl;l=4844-4854;drc=75f767e92e86611728189739fb26f4e2cdf212d9
-        'mixins': [
-          'isolate_profile_data',
-        ],
-        'additional_compile_targets': [
-          'all'
-        ],
-        'test_suites': {
-          'scripts': 'check_network_annotations_script',
-        }
-      },
-      'Linux Builder (j-100) (reclient)': {
-        # Copied from
-        # https://source.chromium.org/chromium/chromium/src/+/master:testing/buildbot/waterfalls.pyl;l=4844-4854;drc=75f767e92e86611728189739fb26f4e2cdf212d9
-        'mixins': [
-          'isolate_profile_data',
-        ],
-        'additional_compile_targets': [
-          'all'
-        ],
-        'test_suites': {
-          'scripts': 'check_network_annotations_script',
-        }
-      },
       'Linux Builder (j-250) (reclient)': {
         # Copied from
         # https://source.chromium.org/chromium/chromium/src/+/master:testing/buildbot/waterfalls.pyl;l=4844-4854;drc=75f767e92e86611728189739fb26f4e2cdf212d9
@@ -2658,7 +2632,7 @@
           'scripts': 'check_network_annotations_script',
         }
       },
-      'Linux Builder (reclient)': {
+      'Linux Builder (j-500) (reclient)': {
         # Copied from
         # https://source.chromium.org/chromium/chromium/src/+/master:testing/buildbot/waterfalls.pyl;l=4844-4854;drc=75f767e92e86611728189739fb26f4e2cdf212d9
         'mixins': [
@@ -4204,7 +4178,6 @@
       'GPU FYI Mac Builder' : {},
       'GPU FYI Mac Builder (dbg)' : {},
       'GPU FYI Win Builder' : {},
-      'GPU FYI Win Builder (dbg)' : {},
       'GPU FYI Win x64 Builder' : {},
       'GPU FYI Win x64 Builder (dbg)' : {},
       'GPU FYI Win x64 DX12 Vulkan Builder': {},
@@ -4802,18 +4775,6 @@
           'gpu_telemetry_tests': 'gpu_fyi_win_release_telemetry_tests',
         },
       },
-      'Win7 FYI Debug (AMD)': {
-        'os_type': 'win',
-        'browser_config': 'debug',
-        'mixins': [
-          'limited_capacity_bot',
-          'win7_amd_r7_240',
-        ],
-        'test_suites': {
-          'gtest_tests': 'gpu_fyi_win7_amd_gtests',
-          'gpu_telemetry_tests': 'gpu_fyi_win_debug_telemetry_tests',
-        },
-      },
       'Win7 FYI Release (AMD)': {
         'os_type': 'win',
         'browser_config': 'release',
@@ -5076,6 +5037,16 @@
         'test_suites': {
           'gtest_tests': 'bfcache_linux_gtests',
           'isolated_scripts': 'chromium_webkit_isolated_scripts',
+        },
+      },
+      'linux-bionic-rel': {
+        'mixins': [
+          'linux-bionic',
+        ],
+        'test_suites': {
+          'gtest_tests': 'chromium_linux_gtests',
+          'isolated_scripts': 'chromium_linux_rel_isolated_scripts',
+          'scripts': 'chromium_linux_scripts',
         },
       },
       'linux-extended-tracing-rel': {
@@ -5830,6 +5801,13 @@
       'WebRTC Chromium Linux Tester': {
         'mixins': [
           'linux-xenial',
+          # Set an alias for builder name used in perf dashboard.
+          # Historically, webrtc perf tests had perf-id rather than builder
+          # name to present their data in perf dashboard. As perf-id was
+          # deprecated in perf dashboard, we add perf_builder_name_alias
+          # field to replace perf-id, keeping the metrics in perf dashboard
+          # consistent.
+          'chromium-webrtc-rel-linux',
         ],
         'test_suites': {
           'gtest_tests': 'webrtc_chromium_tests_with_baremetal_tests',
@@ -5842,6 +5820,9 @@
         ],
       },
       'WebRTC Chromium Mac Tester': {
+        'mixins': [
+          'chromium-webrtc-rel-mac',
+        ],
         'test_suites': {
           'gtest_tests': 'webrtc_chromium_tests_with_baremetal_tests',
         },
@@ -5853,16 +5834,25 @@
         ],
       },
       'WebRTC Chromium Win10 Tester': {
+        'mixins': [
+          'chromium-webrtc-rel-win10',
+        ],
         'test_suites': {
           'gtest_tests': 'webrtc_chromium_tests_with_baremetal_tests',
         },
       },
       'WebRTC Chromium Win7 Tester': {
+        'mixins': [
+          'chromium-webrtc-rel-7',
+        ],
         'test_suites': {
           'gtest_tests': 'webrtc_chromium_tests_with_baremetal_tests',
         },
       },
       'WebRTC Chromium Win8 Tester': {
+        'mixins': [
+          'chromium-webrtc-rel-win8',
+        ],
         'test_suites': {
           'gtest_tests': 'webrtc_chromium_tests_with_baremetal_tests',
         },

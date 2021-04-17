@@ -237,6 +237,8 @@ static_library("browser") {
     "browsing_data/browsing_data_history_observer_service.h",
     "browsing_data/browsing_data_important_sites_util.cc",
     "browsing_data/browsing_data_important_sites_util.h",
+    "browsing_data/browsing_data_lifetime_policy_handler.cc",
+    "browsing_data/browsing_data_lifetime_policy_handler.h",
     "browsing_data/browsing_data_media_license_helper.cc",
     "browsing_data/browsing_data_media_license_helper.h",
     "browsing_data/browsing_data_quota_helper.cc",
@@ -1729,6 +1731,8 @@ static_library("browser") {
     "sync/bookmark_sync_service_factory.h",
     "sync/chrome_sync_client.cc",
     "sync/chrome_sync_client.h",
+    "sync/device_info_sync_client_impl.cc",
+    "sync/device_info_sync_client_impl.h",
     "sync/device_info_sync_service_factory.cc",
     "sync/device_info_sync_service_factory.h",
     "sync/glue/extensions_activity_monitor.cc",
@@ -2683,8 +2687,8 @@ static_library("browser") {
       "android/feed/v2/feed_service_bridge.h",
       "android/feed/v2/feed_service_factory.cc",
       "android/feed/v2/feed_service_factory.h",
-      "android/feed/v2/feed_stream_surface.cc",
-      "android/feed/v2/feed_stream_surface.h",
+      "android/feed/v2/feed_stream.cc",
+      "android/feed/v2/feed_stream.h",
       "android/feed/v2/refresh_task_scheduler_impl.cc",
       "android/feed/v2/refresh_task_scheduler_impl.h",
       "android/feed/v2/web_feed_bridge.cc",
@@ -2741,14 +2745,10 @@ static_library("browser") {
       "android/logo_bridge.cc",
       "android/logo_bridge.h",
       "android/media/media_capture_devices_dispatcher_android.cc",
-      "android/metrics/android_incognito_session_durations_service.cc",
-      "android/metrics/android_incognito_session_durations_service.h",
-      "android/metrics/android_incognito_session_durations_service_factory.cc",
-      "android/metrics/android_incognito_session_durations_service_factory.h",
-      "android/metrics/android_profile_session_durations_service.cc",
-      "android/metrics/android_profile_session_durations_service.h",
-      "android/metrics/android_profile_session_durations_service_factory.cc",
-      "android/metrics/android_profile_session_durations_service_factory.h",
+      "android/metrics/android_session_durations_service.cc",
+      "android/metrics/android_session_durations_service.h",
+      "android/metrics/android_session_durations_service_factory.cc",
+      "android/metrics/android_session_durations_service_factory.h",
       "android/metrics/launch_metrics.cc",
       "android/metrics/uma_session_stats.cc",
       "android/metrics/uma_session_stats.h",
@@ -2998,6 +2998,9 @@ static_library("browser") {
       "installable/installed_webapp_provider.cc",
       "installable/installed_webapp_provider.h",
       "installable/quality_enforcer.cc",
+      "lens/android/lens_policy_utils.cc",
+      "lens/android/lens_prefs.cc",
+      "lens/android/lens_prefs.h",
       "lifetime/application_lifetime_android.cc",
       "lifetime/application_lifetime_android.h",
       "long_screenshots/long_screenshots_tab_service_factory.cc",
@@ -3548,8 +3551,8 @@ static_library("browser") {
       "enterprise/connectors/file_system/box_api_call_endpoints.h",
       "enterprise/connectors/file_system/box_api_call_flow.cc",
       "enterprise/connectors/file_system/box_api_call_flow.h",
-      "enterprise/connectors/file_system/download_controller.cc",
-      "enterprise/connectors/file_system/download_controller.h",
+      "enterprise/connectors/file_system/box_uploader.cc",
+      "enterprise/connectors/file_system/box_uploader.h",
       "enterprise/connectors/file_system/rename_handler.cc",
       "enterprise/connectors/file_system/rename_handler.h",
       "enterprise/connectors/file_system/service_settings.cc",
@@ -3572,6 +3575,8 @@ static_library("browser") {
       "enterprise/reporting/extension_request/extension_request_observer_factory.h",
       "enterprise/reporting/extension_request/extension_request_policy_handler.cc",
       "enterprise/reporting/extension_request/extension_request_policy_handler.h",
+      "enterprise/reporting/extension_request/extension_request_report_generator.cc",
+      "enterprise/reporting/extension_request/extension_request_report_generator.h",
       "enterprise/reporting/extension_request/extension_request_report_throttler.cc",
       "enterprise/reporting/extension_request/extension_request_report_throttler.h",
       "enterprise/reporting/prefs.cc",
@@ -3584,6 +3589,8 @@ static_library("browser") {
       "enterprise/reporting/report_scheduler_desktop.h",
       "enterprise/reporting/reporting_delegate_factory_desktop.cc",
       "enterprise/reporting/reporting_delegate_factory_desktop.h",
+      "enterprise/signals/client_certificate_fetcher.cc",
+      "enterprise/signals/client_certificate_fetcher.h",
       "enterprise/signals/context_info_fetcher.cc",
       "enterprise/signals/context_info_fetcher.h",
       "enterprise/signals/device_info_fetcher.cc",
@@ -4661,6 +4668,8 @@ static_library("browser") {
       "lacros/system_logs/lacros_system_log_fetcher.h",
       "lacros/task_manager_lacros.cc",
       "lacros/task_manager_lacros.h",
+      "lacros/web_contents_can_go_back_observer.cc",
+      "lacros/web_contents_can_go_back_observer.h",
       "metrics/enrollment_status.h",
       "metrics/lacros_metrics_provider.cc",
       "metrics/lacros_metrics_provider.h",
@@ -5295,8 +5304,6 @@ static_library("browser") {
       "notifications/popups_only_ui_controller.h",
       "notifications/screen_lock_notification_blocker.cc",
       "notifications/screen_lock_notification_blocker.h",
-      "password_manager/multi_profile_credentials_filter.cc",
-      "password_manager/multi_profile_credentials_filter.h",
       "platform_util.cc",
       "policy/cbcm_invalidations_initializer.cc",
       "policy/cbcm_invalidations_initializer.h",
@@ -5601,6 +5608,8 @@ static_library("browser") {
 
   if (enable_dice_support) {
     sources += [
+      "password_manager/multi_profile_credentials_filter.cc",
+      "password_manager/multi_profile_credentials_filter.h",
       "signin/dice_intercepted_session_startup_helper.cc",
       "signin/dice_intercepted_session_startup_helper.h",
       "signin/dice_response_handler.cc",
@@ -5876,19 +5885,6 @@ static_library("browser") {
         deps += [
           "//components/cdm/common",
           "//third_party/widevine/cdm:headers",
-        ]
-      }
-      if (is_win) {
-        sources += [
-          "media/widevine_hardware_caps.h",
-          "media/widevine_hardware_caps_win.cc",
-        ]
-        libs += [ "d3d11.lib" ]
-      }
-      if (use_chromeos_protected_media) {
-        sources += [
-          "media/widevine_hardware_caps.h",
-          "media/widevine_hardware_caps_chromeos.cc",
         ]
       }
     }
@@ -6934,6 +6930,20 @@ static_library("test_support") {
       "notifications/win/fake_itoastnotification.cc",
       "notifications/win/fake_itoastnotification.h",
     ]
+  }
+
+  if (enable_basic_printing) {
+    if (is_win || is_mac || is_linux || is_chromeos) {
+      sources += [
+        "printing/print_backend_service_test_impl.cc",
+        "printing/print_backend_service_test_impl.h",
+      ]
+      deps += [
+        "//chrome/services/printing:lib",
+        "//chrome/services/printing/public/mojom",
+        "//printing:test_support",
+      ]
+    }
   }
 
   if (enable_extensions) {

@@ -5525,7 +5525,7 @@ void WebContentsImpl::ViewSource(RenderFrameHostImpl* frame) {
   // We intentionally don't share the SiteInstance with the original frame so
   // that view source has a consistent process model and always ends up in a new
   // process (https://crbug.com/699493).
-  scoped_refptr<SiteInstanceImpl> site_instance_for_view_source = nullptr;
+  scoped_refptr<SiteInstanceImpl> site_instance_for_view_source;
   // Referrer and initiator are not important, because view-source should not
   // hit the network, but should be served from the cache instead.
   Referrer referrer_for_view_source;
@@ -7090,14 +7090,12 @@ void WebContentsImpl::DidChangeName(RenderFrameHostImpl* render_frame_host,
                              render_frame_host, name);
 }
 
-void WebContentsImpl::DidReceiveFirstUserActivation(
+void WebContentsImpl::DidReceiveUserActivation(
     RenderFrameHostImpl* render_frame_host) {
-  OPTIONAL_TRACE_EVENT1("content",
-                        "WebContentsImpl::DidReceiveFirstUserActivation",
+  OPTIONAL_TRACE_EVENT1("content", "WebContentsImpl::DidReceiveUserActivation",
                         "render_frame_host", render_frame_host);
-  observers_.NotifyObservers(
-      &WebContentsObserver::FrameReceivedFirstUserActivation,
-      render_frame_host);
+  observers_.NotifyObservers(&WebContentsObserver::FrameReceivedUserActivation,
+                             render_frame_host);
 }
 
 void WebContentsImpl::DidChangeDisplayState(
@@ -7350,16 +7348,7 @@ void WebContentsImpl::OnFocusedElementChangedInFrame(
 
   FocusedNodeDetails details = {frame->has_focused_editable_element(),
                                 bounds_in_screen, focus_type};
-
-  // TODO(ekaramad): We should replace this with an observer notification
-  // (https://crbug.com/675975).
-  NotificationService::current()->Notify(
-      NOTIFICATION_FOCUS_CHANGED_IN_PAGE,
-      Source<RenderViewHost>(GetRenderViewHost()),
-      Details<FocusedNodeDetails>(&details));
-
   BrowserAccessibilityStateImpl::GetInstance()->OnFocusChangedInPage(details);
-
   observers_.NotifyObservers(&WebContentsObserver::OnFocusChangedInPage,
                              &details);
 }

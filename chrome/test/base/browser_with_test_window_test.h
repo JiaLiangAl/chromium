@@ -32,21 +32,16 @@
 #endif
 #endif
 
-#if BUILDFLAG(IS_CHROMEOS_LACROS)
-#include "chromeos/ui/base/tablet_state.h"
-#endif
-
 #if defined(OS_WIN)
 #include "ui/base/win/scoped_ole_initializer.h"
 #endif
 
-#if BUILDFLAG(IS_CHROMEOS_LACROS)
-namespace chromeos {
-class ScopedLacrosChromeServiceTestHelper;
-}  // namespace chromeos
-#endif
-
 class GURL;
+
+namespace chromeos {
+class ScopedLacrosServiceTestHelper;
+class TabletState;
+}  // namespace chromeos
 
 namespace content {
 class NavigationController;
@@ -220,8 +215,8 @@ class BrowserWithTestWindowTest : public testing::Test {
   std::unique_ptr<content::BrowserTaskEnvironment> task_environment_;
 
 #if BUILDFLAG(IS_CHROMEOS_LACROS)
-  std::unique_ptr<chromeos::ScopedLacrosChromeServiceTestHelper>
-      scoped_lacros_chrome_service_test_helper_;
+  std::unique_ptr<chromeos::ScopedLacrosServiceTestHelper>
+      lacros_service_test_helper_;
 #endif
 
 #if BUILDFLAG(IS_CHROMEOS_ASH)

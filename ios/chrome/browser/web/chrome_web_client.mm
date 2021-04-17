@@ -18,6 +18,7 @@
 #include "components/dom_distiller/core/url_constants.h"
 #include "components/google/core/common/google_util.h"
 #include "components/password_manager/core/common/password_manager_features.h"
+#import "components/password_manager/ios/password_manager_java_script_feature.h"
 #include "components/strings/grit/components_strings.h"
 #include "components/version_info/version_info.h"
 #include "ios/chrome/browser/application_context.h"
@@ -53,6 +54,7 @@
 #include "ios/public/provider/chrome/browser/browser_url_rewriter_provider.h"
 #import "ios/public/provider/chrome/browser/chrome_browser_provider.h"
 #include "ios/public/provider/chrome/browser/chrome_browser_provider.h"
+#import "ios/public/provider/chrome/browser/font_size_java_script_feature.h"
 #include "ios/public/provider/chrome/browser/voice/audio_session_controller.h"
 #include "ios/public/provider/chrome/browser/voice/voice_search_provider.h"
 #include "ios/web/common/features.h"
@@ -301,6 +303,9 @@ std::vector<web::JavaScriptFeature*> ChromeWebClient::GetJavaScriptFeatures(
   features.push_back(autofill::AutofillJavaScriptFeature::GetInstance());
   features.push_back(
       autofill::SuggestionControllerJavaScriptFeature::GetInstance());
+  features.push_back(
+      password_manager::PasswordManagerJavaScriptFeature::GetInstance());
+  features.push_back(FontSizeJavaScriptFeature::GetInstance());
 
   return features;
 }
@@ -373,7 +378,6 @@ void ChromeWebClient::PrepareErrorPage(
     std::move(error_html_callback)
         .Run(GetLegacyTLSErrorPageHTML(web_state, navigation_id));
   } else if (info.has_value()) {
-    base::OnceCallback<void(bool)> proceed_callback;
     base::OnceCallback<void(NSString*)> blocking_page_callback =
         base::BindOnce(^(NSString* blocking_page_html) {
           error_html = blocking_page_html;
@@ -382,7 +386,7 @@ void ChromeWebClient::PrepareErrorPage(
     IOSSSLErrorHandler::HandleSSLError(
         web_state, net::MapCertStatusToNetError(info.value().cert_status),
         info.value(), url, info.value().is_fatal_cert_error, navigation_id,
-        std::move(proceed_callback), std::move(blocking_page_callback));
+        std::move(blocking_page_callback));
   } else {
     std::move(error_html_callback)
         .Run(GetErrorPage(url, error, is_post, is_off_the_record));

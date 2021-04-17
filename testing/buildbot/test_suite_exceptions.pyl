@@ -66,7 +66,6 @@
     'remove_from': [
       # On chromium.android, these do not need to run prior to M.
       'android-lollipop-arm-rel',
-      'android-11-x86-fyi-rel', # crbug.com/1188282: keeps crashing
     ],
   },
   'angle_end2end_tests': {
@@ -112,11 +111,6 @@
   'angle_gles1_conformance_tests': {
     'replacements': {
       'Win10 FYI x64 Debug (NVIDIA)': {
-        'args': {
-          '--test-timeout': '60',
-        },
-      },
-      'Win7 FYI Debug (AMD)': {
         'args': {
           '--test-timeout': '60',
         },
@@ -664,7 +658,7 @@
       },
       'linux-chromeos-lts': {
         'args': [
-          '--test-launcher-filter-file=../../testing/buildbot/filters/chromeos.browser_tests.filter;../../testing/buildbot/filters/chromeos.lts.browser_tests.filter',
+          '--test-launcher-filter-file=../../testing/buildbot/filters/chromeos.browser_tests.filter',
         ],
       },
       'linux-chromeos-rel': {
@@ -1319,12 +1313,6 @@
           'shards': 2,
         },
       },
-      # TODO(crbug.com/1189344): Remove the filter once the issue is fixed.
-      'android-11-x86-fyi-rel': {
-        'args': [
-          '--gtest_filter=-FontUniqueNameLookupTest.TestMatchPostScriptNameTtc',
-        ],
-      },
       'fuchsia-code-coverage': {
         'swarming': {
           'shards': 12,
@@ -1578,7 +1566,7 @@
     'modifications': {
       'fuchsia-code-coverage': {
         'swarming': {
-          'shards': 3,
+          'shards': 6,
         },
       },
     },
@@ -1804,11 +1792,6 @@
         },
       },
     },
-  },
-  'maps_tests': {
-    'remove_from': [
-      'Fuchsia x64' # https://crbug.com/1058255
-    ],
   },
   'media_blink_unittests': {
     'modifications': {
@@ -2473,12 +2456,16 @@
           'shards': 4,
         },
       },
-      # https://crbug.com/1111979,
-      'linux-lacros-tester-rel': {
+      # https://crbug.com/1199909,
+      'linux-lacros-rel': {
         'args': [
-          '--gtest_filter=-SingleClientSessionsSyncTestWithFaviconTestServer.ShouldDeleteOnDemandIconsOnSessionsDisabled',
-        ],
-      },
+          '--gtest_filter=-SingleClientNigoriWithWebApiTest.ShoudRecordTrustedVaultErrorShownOnStartupWhenErrorNotShown:\
+SingleClientNigoriWithWebApiTest.ShouldAcceptEncryptionKeysFromTheWebBeforeSignIn:\
+SingleClientNigoriWithWebApiTest.ShouldClearEncryptionKeysFromTheWebWhenSigninCookiesCleared:\
+SingleClientPollingSyncTest.ShouldPollWhenIntervalExpiredAcrossRestarts:\
+SingleClientPollingSyncTest.ShouldUsePollIntervalFromPrefs',
+        ]
+      }
     },
   },
   'system_webview_shell_layout_test_apk': {
@@ -2493,7 +2480,6 @@
       'Mac Debug (Intel)',
       'Mac Retina Debug (AMD)',
       'Win10 FYI x64 Debug (NVIDIA)',
-      'Win7 FYI Debug (AMD)',
       # Disabled due to dbus crashes crbug.com/927465
       'Linux FYI Release (Intel HD 630)',
       'Linux FYI Release (NVIDIA)',
@@ -2803,7 +2789,7 @@
     'modifications': {
       'fuchsia-code-coverage': {
         'swarming': {
-          'shards': 3,
+          'shards': 14,
         },
       },
     },
@@ -2839,7 +2825,6 @@
       # crbug.com/555545 and crbug.com/649824:
       # Disable webgl_conformance_gl_tests on some Win/AMD cards.
       # Always fails on older cards, flaky on newer cards.
-      'Win7 FYI Debug (AMD)',
       'Win7 FYI Release (AMD)',
     ],
   },
@@ -2879,11 +2864,6 @@
         ]
       },
     },
-  },
-  'webgl_conformance_vulkan_passthrough_tests': {
-    'remove_from': [
-      'Win7 FYI Debug (AMD)',
-    ],
   },
   'webkit_unit_tests': {
     'remove_from': [
@@ -3081,9 +3061,6 @@
   },
   'xr_browser_tests': {
     'remove_from': [
-      # This exception probably needs to stay due to lack of capacity
-      # on the Win AMD bots.
-      'Win7 FYI Debug (AMD)',
       # Fails on the bot, http://crbug.com/868143
       'Win7 FYI Release (AMD)',
     ],

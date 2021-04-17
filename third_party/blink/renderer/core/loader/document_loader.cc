@@ -305,7 +305,9 @@ struct SameSizeAsDocumentLoader
   const Vector<String> force_enabled_origin_trials;
   bool navigation_scroll_allowed;
   bool origin_agent_cluster;
-  bool is_cross_browsing_context_group_navigation;
+  bool is_cross_site_cross_browsing_context_group;
+  WebVector<WebHistoryItem> app_history_back_entries;
+  WebVector<WebHistoryItem> app_history_forward_entries;
 };
 
 // Asserts size of DocumentLoader, so that whenever a new attribute is added to
@@ -408,8 +410,10 @@ DocumentLoader::DocumentLoader(
       force_enabled_origin_trials_(
           CopyForceEnabledOriginTrials(params_->force_enabled_origin_trials)),
       origin_agent_cluster_(params_->origin_agent_cluster),
-      is_cross_browsing_context_group_navigation_(
-          params_->is_cross_browsing_context_group_navigation) {
+      is_cross_site_cross_browsing_context_group_(
+          params_->is_cross_site_cross_browsing_context_group),
+      app_history_back_entries_(params_->app_history_back_entries),
+      app_history_forward_entries_(params_->app_history_forward_entries) {
   DCHECK(frame_);
 
   // See `archive_` attribute documentation.
@@ -529,8 +533,8 @@ DocumentLoader::CreateWebNavigationParamsToCloneDocument() {
   params->web_bundle_physical_url = web_bundle_physical_url_;
   params->web_bundle_claimed_url = web_bundle_claimed_url_;
   params->document_ukm_source_id = ukm_source_id_;
-  params->is_cross_browsing_context_group_navigation =
-      is_cross_browsing_context_group_navigation_;
+  params->is_cross_site_cross_browsing_context_group =
+      is_cross_site_cross_browsing_context_group_;
   params->has_text_fragment_token = has_text_fragment_token_;
   params->previews_state = previews_state_;
   // Origin trials must still work on the cloned document.
@@ -763,7 +767,7 @@ void DocumentLoader::UpdateForSameDocumentNavigation(
   }
 
   if (auto* app_history = AppHistory::appHistory(*frame_->DomWindow()))
-    app_history->UpdateForCommit(history_item_);
+    app_history->UpdateForNavigation(*history_item_, type);
 
   WebHistoryCommitType commit_type = LoadTypeToCommitType(type);
   frame_->GetFrameScheduler()->DidCommitProvisionalLoad(
@@ -2063,11 +2067,6 @@ void DocumentLoader::InitializeWindow(Document* owner_document) {
     frame_->DomWindow()->ParseAndSetReferrerPolicy(referrer_policy_header,
                                                    kPolicySourceHttpHeader);
   }
-
-  if (commit_reason_ != CommitReason::kInitialization) {
-    if (auto* app_history = AppHistory::appHistory(*frame_->DomWindow()))
-      app_history->UpdateForCommit(history_item_);
-  }
 }
 
 void DocumentLoader::CommitNavigation() {
@@ -2173,16 +2172,14 @@ void DocumentLoader::CommitNavigation() {
     frame_->Tree().ExperimentalSetNulledName();
   }
 
-  bool should_clear_cross_browsing_context_group_window_name =
-      previous_window && frame_->IsMainFrame() && !frame_->Loader().Opener() &&
-      is_cross_browsing_context_group_navigation_;
-  if (should_clear_cross_browsing_context_group_window_name) {
-    // TODO(shuuran): CrossBrowsingContextGroupSetNulledName will just
+  bool should_clear_cross_site_cross_browsing_context_group_window_name =
+      previous_window && frame_->IsMainFrame() &&
+      is_cross_site_cross_browsing_context_group_;
+  if (should_clear_cross_site_cross_browsing_context_group_window_name) {
+    // TODO(shuuran): CrossSiteCrossBrowsingContextGroupSetNulledName will just
     // record the fact that the name would be nulled and if the name is accessed
-    // after we will fire a UseCounter. If we decide to move forward with
-    // this change, we'd actually clean the name here.
-    // frame_->tree().setName(g_null_atom);
-    frame_->Tree().CrossBrowsingContextGroupSetNulledName();
+    // after we will fire a UseCounter.
+    frame_->Tree().CrossSiteCrossBrowsingContextGroupSetNulledName();
   }
 
   // MHTML archive's URL is usually a local file. However the main resource
@@ -2193,6 +2190,33 @@ void DocumentLoader::CommitNavigation() {
     KURL main_resource_url = main_resource ? main_resource->Url() : KURL();
     if (!main_resource_url.IsEmpty())
       document->SetBaseURLOverride(main_resource_url);
+  }
+
+  // appHistory is not set on the initial about:blank document.
+  if (commit_reason_ != CommitReason::kInitialization) {
+    if (auto* app_history = AppHistory::appHistory(*frame_->DomWindow())) {
+      // Under most circumstances, the browser process provides the information
+      // need to initialize appHistory's entries array from
+      // |app_history_back_entries_| and |app_history_forward_entries_|.
+      // However, these are not available when the renderer handles the
+      // navigation entirely, so in those cases (javascript: urls, XSLT commits,
+      // and non-back/forward about:blank), copy the array from the previous
+      // window and use the same update algorithm as same-document navigations.
+      if (commit_reason_ != CommitReason::kRegular ||
+          (url_.ProtocolIsAbout() && !IsBackForwardLoadType(load_type_))) {
+        app_history->CloneFromPrevious(
+            *AppHistory::appHistory(*previous_window));
+        app_history->UpdateForNavigation(*history_item_, load_type_);
+      } else {
+        app_history->InitializeForNavigation(*history_item_,
+                                             app_history_back_entries_,
+                                             app_history_forward_entries_);
+      }
+    }
+    // Now that appHistory's entries array is initialized, we don't need to
+    // retain the state from which it was initialized.
+    app_history_back_entries_.Clear();
+    app_history_forward_entries_.Clear();
   }
 
   if (commit_reason_ == CommitReason::kXSLT)
@@ -2218,8 +2242,10 @@ void DocumentLoader::CommitNavigation() {
   // PaintHoldingCrossOrigin feature allows PaintHolding even for cross-origin
   // navigations, otherwise only same-origin navigations have deferred commits.
   // We also require that this be an html document served via http.
+  WebHistoryCommitType history_commit_type = LoadTypeToCommitType(load_type_);
   if (base::FeatureList::IsEnabled(blink::features::kPaintHolding) &&
       IsA<HTMLDocument>(document) && Url().ProtocolIsInHTTPFamily() &&
+      history_commit_type != kWebBackForwardCommit &&
       (is_same_origin_navigation_ ||
        base::FeatureList::IsEnabled(
            blink::features::kPaintHoldingCrossOrigin))) {
@@ -2249,7 +2275,7 @@ void DocumentLoader::CommitNavigation() {
       GetLocalFrameClient().DidCommitDocumentReplacementNavigation(this);
     } else {
       GetLocalFrameClient().DispatchDidCommitLoad(
-          history_item_.Get(), LoadTypeToCommitType(load_type_),
+          history_item_.Get(), history_commit_type,
           previous_window != frame_->DomWindow(),
           security_init.PermissionsPolicyHeader(),
           document_policy_.feature_state);

@@ -3879,6 +3879,7 @@ reviews. Googlers can read more about this at go/gwsq-gerrit.
   <suffix name="SilentHotword" label="Silent hotword device."/>
   <suffix name="Unknown" label="Unknown device. It should not be used."/>
   <suffix name="USB" label="USB device."/>
+  <affected-histogram name="Cras.DeviceGain"/>
   <affected-histogram name="Cras.DeviceVolume"/>
 </histogram_suffixes>
 
@@ -7171,6 +7172,9 @@ reviews. Googlers can read more about this at go/gwsq-gerrit.
   <affected-histogram name="Memory.GPU.PeakMemoryAllocationSource.ChangeTab"/>
   <affected-histogram name="Memory.GPU.PeakMemoryAllocationSource.PageLoad"/>
   <affected-histogram name="Memory.GPU.PeakMemoryAllocationSource.Scroll"/>
+  <affected-histogram name="Memory.GPU.PeakMemoryAllocationSource2.ChangeTab"/>
+  <affected-histogram name="Memory.GPU.PeakMemoryAllocationSource2.PageLoad"/>
+  <affected-histogram name="Memory.GPU.PeakMemoryAllocationSource2.Scroll"/>
 </histogram_suffixes>
 
 <histogram_suffixes name="GPU_PeakMemoryAllocationSourcesBase" separator=".">
@@ -7178,6 +7182,7 @@ reviews. Googlers can read more about this at go/gwsq-gerrit.
   <suffix base="true" name="PageLoad" label="Page Load."/>
   <suffix base="true" name="Scroll" label="Scroll."/>
   <affected-histogram name="Memory.GPU.PeakMemoryAllocationSource"/>
+  <affected-histogram name="Memory.GPU.PeakMemoryAllocationSource2"/>
 </histogram_suffixes>
 
 <histogram_suffixes name="GPU_PeakMemoryUsage" separator=".">
@@ -7185,6 +7190,7 @@ reviews. Googlers can read more about this at go/gwsq-gerrit.
   <suffix name="PageLoad" label="Page Load."/>
   <suffix name="Scroll" label="Scroll."/>
   <affected-histogram name="Memory.GPU.PeakMemoryUsage"/>
+  <affected-histogram name="Memory.GPU.PeakMemoryUsage2"/>
 </histogram_suffixes>
 
 <histogram_suffixes name="GPU_ProtectedVideoType" separator=".">
@@ -12502,6 +12508,8 @@ reviews. Googlers can read more about this at go/gwsq-gerrit.
   <suffix name="LoginDetection"
       label="Provides information about hosts that are identified as commonly
              logged-in"/>
+  <suffix name="MerchantTrustSignals"
+      label="Provides trust data related to the merchant."/>
   <suffix name="None" label="No optimization type"/>
   <suffix name="NoScript"
       label="Disables the fetching and execution of JavaScript">
@@ -20026,6 +20034,7 @@ reviews. Googlers can read more about this at go/gwsq-gerrit.
   <suffix name="PrintManagement" label="PrintManagement"/>
   <suffix name="Sample" label="Sample"/>
   <suffix name="Scanning" label="Scanning"/>
+  <suffix name="ShortcutCustomization" label="ShortcutCustomization"/>
   <suffix name="Telemetry" label="Telemetry"/>
   <suffix name="Terminal" label="Terminal"/>
   <affected-histogram name="Webapp.InstallResult.System.Apps"/>

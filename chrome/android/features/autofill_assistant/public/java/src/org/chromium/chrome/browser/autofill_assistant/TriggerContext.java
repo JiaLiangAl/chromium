@@ -98,7 +98,7 @@ public class TriggerContext {
     private static final String INTENT_SPECIAL_PREFIX = INTENT_EXTRA_PREFIX + "special.";
 
     /** Special parameter that enables the feature. */
-    private static final String PARAMETER_ENABLED = "ENABLED";
+    public static final String PARAMETER_ENABLED = "ENABLED";
 
     /**
      * Special bool parameter that MUST be present in all intents. It allows the caller to either
@@ -145,6 +145,12 @@ public class TriggerContext {
      * rather than the actual deeplink.
      */
     private static final String PARAMETER_ORIGINAL_DEEPLINK = "ORIGINAL_DEEPLINK";
+
+    /**
+     * Defines whether or not it is allowed to open an app instead of continuing with Autofill
+     * Assistant.
+     */
+    private static final String PARAMETER_ALLOW_APP = "ALLOW_APP";
 
     private final Map<String, Object> mScriptParameters;
     private final StringBuilder mExperimentIds;
@@ -217,18 +223,6 @@ public class TriggerContext {
         }
 
         return map;
-    }
-
-    /** Returns whether all mandatory script parameters are set. */
-    public boolean areMandatoryParametersSet() {
-        if (!getBooleanParameter(PARAMETER_ENABLED)
-                || mScriptParameters.get(PARAMETER_START_IMMEDIATELY) == null) {
-            return false;
-        }
-        if (!getBooleanParameter(PARAMETER_START_IMMEDIATELY)) {
-            return containsTriggerScript();
-        }
-        return true;
     }
 
     /**
@@ -304,5 +298,13 @@ public class TriggerContext {
      */
     public boolean isEnabled() {
         return getBooleanParameter(PARAMETER_ENABLED);
+    }
+
+    /**
+     * Returns true if this trigger context allows for launching an external app instead of
+     * continuing with Autofill Assistant.
+     */
+    public boolean allowAppOverride() {
+        return Boolean.parseBoolean(getStringParameter(PARAMETER_ALLOW_APP));
     }
 }

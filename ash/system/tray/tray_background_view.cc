@@ -247,6 +247,8 @@ void TrayBackgroundView::StartVisibilityAnimation(bool visible) {
   if (visible == layer()->GetTargetVisibility())
     return;
 
+  base::AutoReset<bool> is_starting_animation(&is_starting_animation_, true);
+
   if (visible) {
     views::View::SetVisible(true);
     // If SetVisible(true) is called while animating to not visible, then
@@ -277,7 +279,10 @@ void TrayBackgroundView::UpdateStatusArea(bool should_log_visible_pod_count) {
 }
 
 void TrayBackgroundView::OnVisibilityAnimationFinished(
-    bool should_log_visible_pod_count) {
+    bool should_log_visible_pod_count,
+    bool aborted) {
+  if (aborted && is_starting_animation_)
+    return;
   if (!visible_preferred_) {
     views::View::SetVisible(false);
     UpdateStatusArea(should_log_visible_pod_count);
@@ -314,7 +319,8 @@ void TrayBackgroundView::ChildPreferredSizeChanged(views::View* child) {
 
 std::unique_ptr<ui::Layer> TrayBackgroundView::RecreateLayer() {
   if (layer()->GetAnimator()->is_animating())
-    OnVisibilityAnimationFinished(false /*should_log_visible_pod_count*/);
+    OnVisibilityAnimationFinished(/*should_log_visible_pod_count=*/false,
+                                  /*aborted=*/false);
 
   return views::View::RecreateLayer();
 }
@@ -346,6 +352,11 @@ TrayBackgroundView::CreateInkDropHighlight() const {
       gfx::SizeF(bounds.size()), ripple_attributes.base_color);
   highlight->set_visible_opacity(ripple_attributes.highlight_opacity);
   return highlight;
+}
+
+void TrayBackgroundView::OnThemeChanged() {
+  ActionableView::OnThemeChanged();
+  UpdateBackground();
 }
 
 void TrayBackgroundView::OnVirtualKeyboardVisibilityChanged() {
@@ -398,12 +409,14 @@ void TrayBackgroundView::UpdateBackground() {
 
 void TrayBackgroundView::OnLayerAnimationEnded(
     ui::LayerAnimationSequence* sequence) {
-  OnVisibilityAnimationFinished(true /*should_log_visible_pod_count*/);
+  OnVisibilityAnimationFinished(/*should_log_visible_pod_count=*/true,
+                                /*aborted=*/false);
 }
 
 void TrayBackgroundView::OnLayerAnimationAborted(
     ui::LayerAnimationSequence* sequence) {
-  OnVisibilityAnimationFinished(true /*should_log_visible_pod_count*/);
+  OnVisibilityAnimationFinished(/*should_log_visible_pod_count=*/true,
+                                /*aborted=*/true);
 }
 
 void TrayBackgroundView::FadeInAnimation() {
@@ -435,6 +448,9 @@ void TrayBackgroundView::FadeInAnimation() {
   translate_sequence->AddElement(
       ui::LayerAnimationElement::CreateTransformElement(
           gfx::Transform(), kAnimationDurationForVisibilityMs));
+
+  layer()->GetAnimator()->set_preemption_strategy(
+      ui::LayerAnimator::IMMEDIATELY_ANIMATE_TO_NEW_TARGET);
   layer()->GetAnimator()->StartTogether(
       {fade_sequence.release(), translate_sequence.release()});
 }
@@ -502,6 +518,8 @@ void TrayBackgroundView::BounceInAnimation() {
   sequence->AddElement(std::move(move_up));
   sequence->AddObserver(this);
 
+  layer()->GetAnimator()->set_preemption_strategy(
+      ui::LayerAnimator::IMMEDIATELY_ANIMATE_TO_NEW_TARGET);
   layer()->GetAnimator()->StartAnimation(sequence.release());
 }
 
@@ -509,6 +527,14 @@ void TrayBackgroundView::BounceInAnimation() {
 // finished, otherwise the view will disappear immediately without animation
 // once the view's visibility is set to false.
 void TrayBackgroundView::HideAnimation() {
+  std::unique_ptr<ui::LayerAnimationSequence> visible_sequence =
+      std::make_unique<ui::LayerAnimationSequence>();
+  // Sets animator's target visibility to false.
+  std::unique_ptr<ui::LayerAnimationElement> visible_element =
+      ui::LayerAnimationElement::CreateVisibilityElement(
+          false, kAnimationDurationForHideMs);
+  visible_sequence->AddElement(std::move(visible_element));
+
   std::unique_ptr<ui::InterpolatedTransform> scale =
       std::make_unique<ui::InterpolatedScale>(
           gfx::Point3F(1, 1, 1), gfx::Point3F(kAnimationBounceScaleFactor,
@@ -531,8 +557,11 @@ void TrayBackgroundView::HideAnimation() {
   fade_sequence->AddElement(std::move(fade_out));
   fade_sequence->AddObserver(this);
 
-  layer()->GetAnimator()->StartTogether(
-      {fade_sequence.release(), scale_sequence.release()});
+  layer()->GetAnimator()->set_preemption_strategy(
+      ui::LayerAnimator::IMMEDIATELY_ANIMATE_TO_NEW_TARGET);
+  layer()->GetAnimator()->StartTogether({visible_sequence.release(),
+                                         fade_sequence.release(),
+                                         scale_sequence.release()});
 }
 
 void TrayBackgroundView::SetIsActive(bool is_active) {

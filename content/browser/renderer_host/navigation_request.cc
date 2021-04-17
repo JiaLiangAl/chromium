@@ -967,7 +967,11 @@ std::unique_ptr<NavigationRequest> NavigationRequest::CreateRendererInitiated(
           /*enabled_client_hints=*/
           std::vector<network::mojom::WebClientHintsType>(),
           /*is_cross_browsing_instance=*/false,
-          /*old_page_info=*/nullptr, /*http_response_code=*/-1);
+          /*old_page_info=*/nullptr, /*http_response_code=*/-1,
+          std::vector<
+              mojom::AppHistoryEntryPtr>() /* app_history_back_entries */,
+          std::vector<
+              mojom::AppHistoryEntryPtr>() /* app_history_forward_entries */);
 
   // CreateRendererInitiated() should only be triggered when the navigation is
   // initiated by a frame in the same process.
@@ -1078,8 +1082,12 @@ std::unique_ptr<NavigationRequest> NavigationRequest::CreateForCommit(
           false /* origin_agent_cluster */,
           std::vector<
               network::mojom::WebClientHintsType>() /* enabled_client_hints */,
-          false /* is_cross_browsing_instance */,
-          nullptr /* old_page_info */, http_response_code);
+          false /* is_cross_browsing_instance */, nullptr /* old_page_info */,
+          http_response_code,
+          std::vector<
+              mojom::AppHistoryEntryPtr>() /* app_history_back_entries */,
+          std::vector<
+              mojom::AppHistoryEntryPtr>() /* app_history_forward_entries */);
   mojom::BeginNavigationParamsPtr begin_params =
       mojom::BeginNavigationParams::New();
   std::unique_ptr<NavigationRequest> navigation_request(new NavigationRequest(
@@ -1625,7 +1633,7 @@ void NavigationRequest::BeginNavigation() {
   // prerendered page, we already know its preview type from the first time we
   // navigated into the page, so we should only set |previews_state| when the
   // navigation is not served from one of these.
-  if (!IsServedFromBackForwardCache() || IsPrerenderedPageActivation()) {
+  if (!IsPageActivation()) {
     common_params_->previews_state =
         GetContentClient()->browser()->DetermineAllowedPreviews(
             common_params_->previews_state, this, common_params_->url);
@@ -3927,6 +3935,9 @@ void NavigationRequest::CommitNavigation() {
   commit_params_->is_prerendering =
       frame_tree_node_->frame_tree()->is_prerendering();
 
+  if (!IsSameDocument())
+    GetNavigationController()->PopulateAppHistoryEntryVectors(this);
+
   auto common_params = common_params_->Clone();
   auto commit_params = commit_params_.Clone();
   auto response_head = response_head_.Clone();
@@ -5023,9 +5034,9 @@ void NavigationRequest::DidCommitNavigation(
   // empty name on the browser side.
   bool should_clear_browsing_instance_name =
       coop_status().require_browsing_instance_swap() ||
-      (commit_params().is_cross_browsing_instance &&
+      (commit_params().is_cross_site_cross_browsing_context_group &&
        base::FeatureList::IsEnabled(
-           features::kClearCrossBrowsingContextGroupMainFrameName));
+           features::kClearCrossSiteCrossBrowsingContextGroupWindowName));
 
   if (should_clear_browsing_instance_name) {
     std::string name, unique_name;
@@ -5552,6 +5563,10 @@ bool NavigationRequest::HasCommitted() {
 
 bool NavigationRequest::IsErrorPage() {
   return state_ == DID_COMMIT_ERROR_PAGE;
+}
+
+bool NavigationRequest::DidEncounterError() const {
+  return net_error_ != net::OK;
 }
 
 net::HttpResponseInfo::ConnectionInfo NavigationRequest::GetConnectionInfo() {

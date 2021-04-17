@@ -70,17 +70,42 @@ struct Visit {
 struct Memory {
   // Memory identifier.
   mojo_base.mojom.UnguessableToken id;
+
+  // Top constituent visits; starting with the most recent.
+  array<Visit> top_visits;
+
+  // The content "topics", or keywords, that the memory contains/is related to.
+  // These strings should never be exposed to the user directly in case they are
+  // offensively wrong, but may be queried over with search terms to find
+  // memories.
+  array<string> keywords;
+
   // Search queries related to the constituent visits.
   array<SearchQuery> related_searches;
   // Tab groups containing one or more of the visited URLs in the Memory.
   array<TabGroup> related_tab_groups;
   // Bookmarked visited pages in the Memory.
   array<WebPage> bookmarks;
-  // Top constituent visits; starting with the most recent.
-  array<Visit> top_visits;
   // Time of the most recent visit in the Memory. Used for extracting Memories.
   mojo_base.mojom.Time last_visit_time;
   // A calculated engagement score based on engagement scores of constituent
   // visits. Used to rank Memories.
   double engagement_score;
+};
+
+// Parameters used to query the service for Memories in reverse chronological
+// order.
+struct QueryParams {
+  // The query string the Memories are matched against. The default value of
+  // empty string means to return every Memory that matches the other criteria.
+  mojo_base.mojom.String16 query;
+
+  // The time threshold (exclusive) for how recent the returned Memories can be.
+  // The sensible default value for this is the present time which should be
+  // explicitly set to base::Time::Now().
+  mojo_base.mojom.Time recency_threshold;
+
+  // The maximum number of Memories to return. The default value of 0 means to
+  // return every Memory that matches the other criteria.
+  uint32 max_count;
 };

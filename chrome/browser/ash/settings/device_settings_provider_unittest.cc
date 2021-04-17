@@ -65,10 +65,10 @@ class DeviceSettingsProviderTest : public DeviceSettingsTestBase {
     DeviceSettingsTestBase::SetUp();
 
     EXPECT_CALL(*this, SettingChanged(_)).Times(AnyNumber());
-    provider_.reset(new DeviceSettingsProvider(
+    provider_ = std::make_unique<DeviceSettingsProvider>(
         base::BindRepeating(&DeviceSettingsProviderTest::SettingChanged,
                             base::Unretained(this)),
-        device_settings_service_.get(), local_state_.Get()));
+        device_settings_service_.get(), local_state_.Get());
     Mock::VerifyAndClearExpectations(this);
   }
 
@@ -276,6 +276,13 @@ class DeviceSettingsProviderTest : public DeviceSettingsTestBase {
     em::PluginVmAllowedProto* proto =
         device_policy_->payload().mutable_plugin_vm_allowed();
     proto->set_plugin_vm_allowed(plugin_vm_allowed);
+    BuildAndInstallDevicePolicy();
+  }
+
+  void SetPluginVmLicenseKeySetting(const std::string& plugin_vm_license_key) {
+    em::PluginVmLicenseKeyProto* proto =
+        device_policy_->payload().mutable_plugin_vm_license_key();
+    proto->set_plugin_vm_license_key(plugin_vm_license_key);
     BuildAndInstallDevicePolicy();
   }
 
@@ -917,6 +924,11 @@ TEST_F(DeviceSettingsProviderTest, DecodePluginVmAllowedSetting) {
 
   SetPluginVmAllowedSetting(false);
   EXPECT_EQ(base::Value(false), *provider_->Get(kPluginVmAllowed));
+}
+
+TEST_F(DeviceSettingsProviderTest, DecodePluginVmLicenseKeySetting) {
+  SetPluginVmLicenseKeySetting("LICENSE_KEY");
+  EXPECT_EQ(base::Value("LICENSE_KEY"), *provider_->Get(kPluginVmLicenseKey));
 }
 
 TEST_F(DeviceSettingsProviderTest, DeviceRebootAfterUserSignout) {

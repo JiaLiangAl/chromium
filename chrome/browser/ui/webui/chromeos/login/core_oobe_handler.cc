@@ -148,13 +148,12 @@ void CoreOobeHandler::RegisterMessages() {
 }
 
 void CoreOobeHandler::ShowSignInError(
-    int login_attempts,
     const std::string& error_text,
     const std::string& help_link_text,
     HelpAppLauncher::HelpTopic help_topic_id) {
   LOG(ERROR) << "CoreOobeHandler::ShowSignInError: error_text=" << error_text;
-  CallJS("cr.ui.Oobe.showSignInError", login_attempts, error_text,
-         help_link_text, static_cast<int>(help_topic_id));
+  CallJS("cr.ui.Oobe.showSignInError", error_text, help_link_text,
+         static_cast<int>(help_topic_id));
 }
 
 void CoreOobeHandler::ShowDeviceResetScreen() {
@@ -179,7 +178,12 @@ void CoreOobeHandler::ReloadContent(const base::DictionaryValue& dictionary) {
 
 void CoreOobeHandler::ReloadEulaContent(
     const base::DictionaryValue& dictionary) {
-  CallJS("cr.ui.Oobe.reloadEulaContent", dictionary);
+  // TODO(crbug.com/1180291) - Remove once OOBE JS calls are fixed.
+  if (IsSafeToCallJavascript()) {
+    CallJS("cr.ui.Oobe.reloadEulaContent", dictionary);
+  } else {
+    LOG(ERROR) << "Silently dropping ReloadEulaContent request.";
+  }
 }
 
 void CoreOobeHandler::SetVirtualKeyboardShown(bool shown) {
@@ -187,25 +191,45 @@ void CoreOobeHandler::SetVirtualKeyboardShown(bool shown) {
 }
 
 void CoreOobeHandler::SetClientAreaSize(int width, int height) {
-  CallJS("cr.ui.Oobe.setClientAreaSize", width, height);
+  // TODO(crbug.com/1180291) - Remove once OOBE JS calls are fixed.
+  if (IsSafeToCallJavascript()) {
+    CallJS("cr.ui.Oobe.setClientAreaSize", width, height);
+  } else {
+    LOG(ERROR) << "Silently dropping SetClientAreaSize request.";
+  }
 }
 
 void CoreOobeHandler::SetShelfHeight(int height) {
-  CallJS("cr.ui.Oobe.setShelfHeight", height);
+  // TODO(crbug.com/1180291) - Remove once OOBE JS calls are fixed.
+  if (IsSafeToCallJavascript()) {
+    CallJS("cr.ui.Oobe.setShelfHeight", height);
+  } else {
+    LOG(ERROR) << "Silently dropping SetShelfHeight request.";
+  }
 }
 
 void CoreOobeHandler::SetOrientation(bool is_horizontal) {
-  CallJS("cr.ui.Oobe.setOrientation", is_horizontal);
+  // TODO(crbug.com/1180291) - Remove once OOBE JS calls are fixed.
+  if (IsSafeToCallJavascript()) {
+    CallJS("cr.ui.Oobe.setOrientation", is_horizontal);
+  } else {
+    LOG(ERROR) << "Silently dropping SetOrientation request.";
+  }
 }
 
 void CoreOobeHandler::SetDialogSize(int width, int height) {
-  CallJS("cr.ui.Oobe.setDialogSize", width, height);
+  // TODO(crbug.com/1180291) - Remove once OOBE JS calls are fixed.
+  if (IsSafeToCallJavascript()) {
+    CallJS("cr.ui.Oobe.setDialogSize", width, height);
+  } else {
+    LOG(ERROR) << "Silently dropping SetDialogSize request.";
+  }
 }
 
 void CoreOobeHandler::HandleInitialized() {
   VLOG(3) << "CoreOobeHandler::HandleInitialized";
-  GetOobeUI()->InitializeHandlers();
   AllowJavascript();
+  GetOobeUI()->InitializeHandlers();
 }
 
 void CoreOobeHandler::HandleUpdateCurrentScreen(
@@ -319,7 +343,12 @@ ui::EventSink* CoreOobeHandler::GetEventSink() {
 
 void CoreOobeHandler::UpdateLabel(const std::string& id,
                                   const std::string& text) {
-  CallJS("cr.ui.Oobe.setLabelText", id, text);
+  // TODO(crbug.com/1180291) - Remove once OOBE JS calls are fixed.
+  if (IsSafeToCallJavascript()) {
+    CallJS("cr.ui.Oobe.setLabelText", id, text);
+  } else {
+    LOG(ERROR) << "Silently dropping UpdateLabel request.";
+  }
 }
 
 void CoreOobeHandler::UpdateKeyboardState() {
@@ -366,7 +395,12 @@ void CoreOobeHandler::SetDialogPaddingMode(
     default:
       NOTREACHED();
   }
-  CallJS("cr.ui.Oobe.setDialogPaddingMode", padding);
+  // TODO(crbug.com/1180291) - Remove once OOBE JS calls are fixed.
+  if (IsSafeToCallJavascript()) {
+    CallJS("cr.ui.Oobe.setDialogPaddingMode", padding);
+  } else {
+    LOG(ERROR) << "Silently dropping SetDialogPaddingMode request.";
+  }
 }
 
 void CoreOobeHandler::OnOobeConfigurationChanged() {

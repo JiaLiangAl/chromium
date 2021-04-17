@@ -212,6 +212,7 @@
 #include "chrome/browser/android/preferences/browser_prefs_android.h"
 #include "chrome/browser/android/usage_stats/usage_stats_bridge.h"
 #include "chrome/browser/first_run/android/first_run_prefs.h"
+#include "chrome/browser/lens/android/lens_prefs.h"
 #include "chrome/browser/media/android/cdm/media_drm_origin_id_manager.h"
 #include "chrome/browser/ssl/known_interception_disclosure_infobar_delegate.h"
 #include "chrome/browser/video_tutorials/prefs.h"
@@ -270,10 +271,10 @@
 #include "chrome/browser/ash/child_accounts/screen_time_controller.h"
 #include "chrome/browser/ash/child_accounts/time_limits/app_activity_registry.h"
 #include "chrome/browser/ash/child_accounts/time_limits/app_time_controller.h"
+#include "chrome/browser/ash/customization/customization_document.h"
 #include "chrome/browser/chromeos/crostini/crostini_pref_names.h"
 #include "chrome/browser/chromeos/cryptauth/client_app_metadata_provider_service.h"
 #include "chrome/browser/chromeos/cryptauth/cryptauth_device_id_provider_impl.h"
-#include "chrome/browser/chromeos/customization/customization_document.h"
 #include "chrome/browser/chromeos/extensions/echo_private_api.h"
 #include "chrome/browser/chromeos/extensions/login_screen/login/login_api.h"
 #if defined(USE_CUPS)
@@ -550,6 +551,12 @@ const char kToolbarIconSurfacingBubbleLastShowTime[] =
     "toolbar_icon_surfacing_bubble_show_time";
 #endif
 
+// Deprecated 04/2021
+const char kTranslateLastDeniedTimeForLanguage[] =
+    "translate_last_denied_time_for_language";
+const char kTranslateTooOftenDeniedForLanguage[] =
+    "translate_too_often_denied_for_language";
+
 // Register local state used only for migration (clearing or moving to a new
 // key).
 void RegisterLocalStatePrefsForMigration(PrefRegistrySimple* registry) {
@@ -671,6 +678,9 @@ void RegisterProfilePrefsForMigration(
   registry->RegisterBooleanPref(kToolbarIconSurfacingBubbleAcknowledged, false);
   registry->RegisterInt64Pref(kToolbarIconSurfacingBubbleLastShowTime, 0);
 #endif
+
+  registry->RegisterDictionaryPref(kTranslateLastDeniedTimeForLanguage);
+  registry->RegisterDictionaryPref(kTranslateTooOftenDeniedForLanguage);
 }
 
 }  // namespace
@@ -747,6 +757,7 @@ void RegisterLocalState(PrefRegistrySimple* registry) {
   ::android::RegisterPrefs(registry);
 
   registry->RegisterIntegerPref(first_run::kTosDialogBehavior, 0);
+  registry->RegisterBooleanPref(lens::kLensCameraAssistedSearchEnabled, true);
 #else  // defined(OS_ANDROID)
   enterprise_reporting::RegisterLocalStatePrefs(registry);
   gcm::RegisterPrefs(registry);
@@ -1102,7 +1113,7 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry,
   chromeos::quick_unlock::PinStoragePrefs::RegisterProfilePrefs(registry);
   chromeos::Preferences::RegisterProfilePrefs(registry);
   chromeos::EnterprisePrintersProvider::RegisterProfilePrefs(registry);
-  chromeos::parent_access::ParentAccessService::RegisterProfilePrefs(registry);
+  ash::parent_access::ParentAccessService::RegisterProfilePrefs(registry);
   chromeos::quick_answers::prefs::RegisterProfilePrefs(registry);
   chromeos::quick_unlock::RegisterProfilePrefs(registry);
   chromeos::RegisterSamlProfilePrefs(registry);
@@ -1196,6 +1207,7 @@ void RegisterSigninProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
 #endif
 
 // This method should be periodically pruned of year+ old migrations.
+// See chrome/browser/prefs/README.md for details.
 void MigrateObsoleteLocalStatePrefs(PrefService* local_state) {
   // BEGIN_MIGRATE_OBSOLETE_LOCAL_STATE_PREFS
   // Please don't delete the preceding line. It is used by PRESUBMIT.py.
@@ -1243,6 +1255,7 @@ void MigrateObsoleteLocalStatePrefs(PrefService* local_state) {
 }
 
 // This method should be periodically pruned of year+ old migrations.
+// See chrome/browser/prefs/README.md for details.
 void MigrateObsoleteProfilePrefs(Profile* profile) {
   // BEGIN_MIGRATE_OBSOLETE_PROFILE_PREFS
   // Please don't delete the preceding line. It is used by PRESUBMIT.py.
@@ -1363,6 +1376,10 @@ void MigrateObsoleteProfilePrefs(Profile* profile) {
   profile_prefs->ClearPref(kToolbarIconSurfacingBubbleAcknowledged);
   profile_prefs->ClearPref(kToolbarIconSurfacingBubbleLastShowTime);
 #endif
+
+  // Added 04/2021
+  profile_prefs->ClearPref(kTranslateLastDeniedTimeForLanguage);
+  profile_prefs->ClearPref(kTranslateTooOftenDeniedForLanguage);
 
   // Please don't delete the following line. It is used by PRESUBMIT.py.
   // END_MIGRATE_OBSOLETE_PROFILE_PREFS

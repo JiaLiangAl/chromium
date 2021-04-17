@@ -415,12 +415,19 @@ struct BLINK_EXPORT WebNavigationParams {
   // checked against permissions policy before use.
   WebVector<network::mojom::WebClientHintsType> enabled_client_hints;
 
-  // Whether the navigation is cross browsing context group (browsing instance).
-  bool is_cross_browsing_context_group_navigation = false;
+  // Whether the navigation is cross-site and swaps BrowsingContextGroups
+  // (BrowsingInstances).
+  bool is_cross_site_cross_browsing_context_group = false;
 
   // Blink's copy of the policy container containing security policies to be
   // enforced on the document created by this navigation.
   std::unique_ptr<WebPolicyContainer> policy_container;
+
+  // These are used to construct a subset of the back/forward list for the
+  // appHistory API. They only have the attributes that are needed for
+  // appHistory.
+  WebVector<WebHistoryItem> app_history_back_entries;
+  WebVector<WebHistoryItem> app_history_forward_entries;
 };
 
 }  // namespace blink

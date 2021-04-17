@@ -29,9 +29,9 @@
 #include "base/threading/scoped_blocking_call.h"
 #include "base/threading/sequenced_task_runner_handle.h"
 #include "base/values.h"
+#include "chrome/browser/ash/customization/customization_document.h"
 #include "chrome/browser/ash/profiles/profile_helper.h"
 #include "chrome/browser/browser_process.h"
-#include "chrome/browser/chromeos/customization/customization_document.h"
 #include "chrome/browser/profiles/profile_manager.h"
 #include "chrome/grit/generated_resources.h"
 #include "content/public/browser/browser_thread.h"
@@ -46,6 +46,11 @@ namespace chromeos {
 const char kMostRelevantLanguagesDivider[] = "MOST_RELEVANT_LANGUAGES_DIVIDER";
 
 namespace {
+
+// The code below needs a UTF16 version of kMostRelevantLanguagesDivider.
+// Provide it here as a constant.
+constexpr char16_t kMostRelevantLanguagesDivider16[] =
+    u"MOST_RELEVANT_LANGUAGES_DIVIDER";
 
 std::unique_ptr<base::DictionaryValue> CreateInputMethodsEntry(
     const input_method::InputMethodDescriptor& method,
@@ -251,7 +256,7 @@ std::unique_ptr<base::ListValue> GetLanguageList(
   if (insert_divider && !out_display_names.empty()) {
     // Insert a divider if requested, but only if
     // `most_relevant_locales_display_names` is not empty.
-    divider16 = base::ASCIIToUTF16(kMostRelevantLanguagesDivider);
+    divider16 = kMostRelevantLanguagesDivider16;
     out_display_names.push_back(divider16);
   }
 

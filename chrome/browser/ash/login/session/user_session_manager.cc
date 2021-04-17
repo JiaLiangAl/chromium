@@ -71,6 +71,8 @@
 #include "chrome/browser/ash/profiles/profile_helper.h"
 #include "chrome/browser/ash/settings/cros_settings.h"
 #include "chrome/browser/ash/settings/owner_flags_storage.h"
+#include "chrome/browser/ash/sync/os_sync_util.h"
+#include "chrome/browser/ash/sync/turn_sync_on_helper.h"
 #include "chrome/browser/browser_process.h"
 #include "chrome/browser/browser_process_platform_part_chromeos.h"
 #include "chrome/browser/chrome_notification_types.h"
@@ -82,8 +84,6 @@
 #include "chrome/browser/chromeos/policy/browser_policy_connector_chromeos.h"
 #include "chrome/browser/chromeos/policy/minimum_version_policy_handler.h"
 #include "chrome/browser/chromeos/policy/tpm_auto_update_mode_policy_handler.h"
-#include "chrome/browser/chromeos/sync/os_sync_util.h"
-#include "chrome/browser/chromeos/sync/turn_sync_on_helper.h"
 #include "chrome/browser/chromeos/tether/tether_service.h"
 #include "chrome/browser/chromeos/tpm_firmware_update_notification.h"
 #include "chrome/browser/chromeos/u2f_notification.h"
@@ -2052,7 +2052,7 @@ void UserSessionManager::StartAccountManagerMigration(Profile* profile) {
 
 EasyUnlockKeyManager* UserSessionManager::GetEasyUnlockKeyManager() {
   if (!easy_unlock_key_manager_)
-    easy_unlock_key_manager_.reset(new EasyUnlockKeyManager);
+    easy_unlock_key_manager_ = std::make_unique<EasyUnlockKeyManager>();
 
   return easy_unlock_key_manager_.get();
 }

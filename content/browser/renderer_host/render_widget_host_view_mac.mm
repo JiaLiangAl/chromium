@@ -732,12 +732,15 @@ void RenderWidgetHostViewMac::Destroy() {
 
 void RenderWidgetHostViewMac::SetTooltipText(
     const std::u16string& tooltip_text) {
-  GetCursorManager()->SetTooltipTextForView(this, tooltip_text);
+  if (GetCursorManager()->IsViewUnderCursor(this))
+    DisplayTooltipText(tooltip_text);
 }
 
 void RenderWidgetHostViewMac::DisplayTooltipText(
     const std::u16string& tooltip_text) {
   ns_view_->SetTooltipText(tooltip_text);
+  if (tooltip_observer_for_testing_)
+    tooltip_observer_for_testing_->OnTooltipTextUpdated(tooltip_text);
 }
 
 viz::ScopedSurfaceIdAllocator

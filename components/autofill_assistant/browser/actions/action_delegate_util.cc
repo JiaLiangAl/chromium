@@ -13,6 +13,7 @@
 #include "components/autofill_assistant/browser/string_conversions_util.h"
 #include "components/autofill_assistant/browser/user_data_util.h"
 #include "components/autofill_assistant/browser/web/element_finder.h"
+#include "components/autofill_assistant/browser/web/element_store.h"
 #include "components/autofill_assistant/browser/web/web_controller.h"
 
 namespace autofill_assistant {
@@ -137,7 +138,11 @@ void AddClickOrTapSequence(const ActionDelegate* delegate,
   actions->emplace_back(
       base::BindOnce(&WebController::ScrollIntoView,
                      delegate->GetWebController()->GetWeakPtr(), true));
-  if (click_type != ClickType::JAVASCRIPT) {
+  if (click_type == ClickType::JAVASCRIPT) {
+    actions->emplace_back(
+        base::BindOnce(&WebController::JsClickElement,
+                       delegate->GetWebController()->GetWeakPtr()));
+  } else {
     AddStepIgnoreTiming(
         base::BindOnce(&WebController::WaitUntilElementIsStable,
                        delegate->GetWebController()->GetWeakPtr(),
@@ -148,9 +153,10 @@ void AddClickOrTapSequence(const ActionDelegate* delegate,
                     base::BindOnce(&WebController::CheckOnTop,
                                    delegate->GetWebController()->GetWeakPtr()),
                     actions);
+    actions->emplace_back(
+        base::BindOnce(&WebController::ClickOrTapElement,
+                       delegate->GetWebController()->GetWeakPtr(), click_type));
   }
-  actions->emplace_back(base::BindOnce(&ActionDelegate::ClickOrTapElement,
-                                       delegate->GetWeakPtr(), click_type));
 }
 
 void OnGetPasswordManagerValue(
@@ -226,6 +232,31 @@ void PerformWithTextValue(
   }
 
   std::move(perform).Run(value, element, std::move(done));
+}
+
+void PerformWithElementValue(
+    const ActionDelegate* delegate,
+    const ClientIdProto& client_id,
+    base::OnceCallback<void(const ElementFinder::Result&,
+                            const ElementFinder::Result&,
+                            base::OnceCallback<void(const ClientStatus&)>)>
+        perform,
+    const ElementFinder::Result& element,
+    base::OnceCallback<void(const ClientStatus&)> done) {
+  std::unique_ptr<ElementFinder::Result> element_result =
+      std::make_unique<ElementFinder::Result>();
+  ElementFinder::Result* element_result_ptr = element_result.get();
+  ClientStatus element_status = delegate->GetElementStore()->GetElement(
+      client_id.identifier(), element_result_ptr);
+  if (!element_status.ok()) {
+    std::move(done).Run(element_status);
+    return;
+  }
+
+  std::move(perform).Run(
+      *element_result_ptr, element,
+      base::BindOnce(&RetainElementAndExecuteCallback,
+                     std::move(element_result), std::move(done)));
 }
 
 void AddOptionalStep(OptionalStep optional_step,

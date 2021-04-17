@@ -135,11 +135,6 @@
 #include "chrome/browser/chromeos/policy/user_cloud_policy_manager_chromeos.h"
 #endif
 
-#if BUILDFLAG(IS_CHROMEOS_LACROS)
-#include "chromeos/lacros/lacros_chrome_service_impl.h"
-#include "chromeos/lacros/scoped_lacros_chrome_service_test_helper.h"
-#endif
-
 #if BUILDFLAG(ENABLE_SUPERVISED_USERS)
 #include "chrome/browser/supervised_user/supervised_user_constants.h"
 #include "chrome/browser/supervised_user/supervised_user_settings_service.h"
@@ -377,20 +372,13 @@ void TestingProfile::Init() {
                               immediate_callback_runner);
   account_manager->SetPrefService(GetPrefs());
   if (!ash::CrosSettings::IsInitialized()) {
-    scoped_cros_settings_test_helper_.reset(
-        new ash::ScopedCrosSettingsTestHelper);
+    scoped_cros_settings_test_helper_ =
+        std::make_unique<ash::ScopedCrosSettingsTestHelper>();
   }
   arc::ArcServiceLauncher* launcher = arc::ArcServiceLauncher::Get();
   if (launcher)
     launcher->MaybeSetProfile(this);
-#endif  // BUILDFLAG(IS_CHROMEOS_ASH)
-
-#if BUILDFLAG(IS_CHROMEOS_LACROS)
-  if (!chromeos::LacrosChromeServiceImpl::Get()) {
-    scoped_lacros_chrome_service_test_helper_ =
-        std::make_unique<chromeos::ScopedLacrosChromeServiceTestHelper>();
-  }
-#endif  // BUILDFLAG(IS_CHROMEOS_LACROS)
+#endif
 
   autofill::PersonalDataManagerFactory::GetInstance()->SetTestingFactory(
       this, base::BindRepeating(&BuildPersonalDataManagerInstanceFor));
@@ -429,8 +417,7 @@ void TestingProfile::Init() {
       this, base::BindRepeating(&web_app::TestWebAppProvider::BuildDefault));
 #endif
 
-  // Prefs for incognito profiles are set in CreateIncognitoPrefService() by
-  // simulating ProfileImpl::GetOffTheRecordPrefs().
+  // Prefs for incognito profiles are set in CreateIncognitoPrefService().
   SimpleFactoryKey* key = GetProfileKey();
   if (!IsOffTheRecord()) {
     DCHECK(!original_profile_);
@@ -951,10 +938,6 @@ GURL TestingProfile::GetHomePage() {
 
 void TestingProfile::SetCreationTimeForTesting(base::Time creation_time) {
   start_time_ = creation_time;
-}
-
-PrefService* TestingProfile::GetOffTheRecordPrefs() {
-  return nullptr;
 }
 
 bool TestingProfile::IsSignedIn() {

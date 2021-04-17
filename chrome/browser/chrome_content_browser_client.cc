@@ -63,6 +63,7 @@
 #include "chrome/browser/download/chrome_download_manager_delegate.h"
 #include "chrome/browser/download/download_prefs.h"
 #include "chrome/browser/enterprise/connectors/connectors_service.h"
+#include "chrome/browser/enterprise/util/managed_browser_utils.h"
 #include "chrome/browser/extensions/chrome_extension_cookies.h"
 #include "chrome/browser/external_protocol/external_protocol_handler.h"
 #include "chrome/browser/federated_learning/floc_eligibility_observer.h"
@@ -406,6 +407,7 @@
 #include "chrome/browser/mac/auth_session_request.h"
 #include "components/soda/constants.h"
 #include "sandbox/mac/seatbelt_exec.h"
+#include "sandbox/policy/mac/params.h"
 #include "sandbox/policy/mac/sandbox_mac.h"
 #elif BUILDFLAG(IS_CHROMEOS_ASH)
 #include "ash/constants/ash_switches.h"
@@ -623,16 +625,6 @@
 #if BUILDFLAG(ENABLE_MEDIA_REMOTING)
 #include "chrome/browser/media/cast_remoting_connector.h"
 #endif
-
-#if BUILDFLAG(ENABLE_LIBRARY_CDMS)
-#include "chrome/browser/media/output_protection_impl.h"
-#if BUILDFLAG(ENABLE_WIDEVINE)
-#include "third_party/widevine/cdm/widevine_cdm_common.h"
-#if defined(OS_WIN) || BUILDFLAG(USE_CHROMEOS_PROTECTED_MEDIA)
-#include "chrome/browser/media/widevine_hardware_caps.h"
-#endif
-#endif  // BUILDFLAG(ENABLE_WIDEVINE)
-#endif  // BUILDFLAG(ENABLE_LIBRARY_CDMS)
 
 #if BUILDFLAG(ENABLE_SUPERVISED_USERS)
 #include "chrome/browser/supervised_user/supervised_user_navigation_throttle.h"
@@ -1331,6 +1323,8 @@ void ChromeContentBrowserClient::RegisterProfilePrefs(
   registry->RegisterBooleanPref(prefs::kAutoplayAllowed, false);
   registry->RegisterListPref(prefs::kAutoplayWhitelist);
   registry->RegisterIntegerPref(prefs::kFetchKeepaliveDurationOnShutdown, 0);
+  registry->RegisterBooleanPref(
+      prefs::kSharedArrayBufferUnrestrictedAccessAllowed, false);
 #endif
   registry->RegisterBooleanPref(prefs::kSSLErrorOverrideAllowed, true);
   registry->RegisterListPref(prefs::kSSLErrorOverrideAllowedForOrigins);
@@ -2309,6 +2303,14 @@ void ChromeContentBrowserClient::AppendExtraCommandLineSwitches(
           instant_service->IsInstantProcess(process->GetID())) {
         command_line->AppendSwitch(switches::kInstantProcess);
       }
+
+      // Enable SharedArrayBuffer on desktop if allowed by Enterprise Policy.
+      // TODO(crbug.com/1144104) Remove when migration to COOP+COEP is complete.
+      if (prefs->GetBoolean(
+              prefs::kSharedArrayBufferUnrestrictedAccessAllowed)) {
+        command_line->AppendSwitch(
+            switches::kSharedArrayBufferUnrestrictedAccessAllowed);
+      }
 #endif
 
       if (prefs->HasPrefPath(prefs::kAllowDinosaurEasterEgg) &&
@@ -2848,10 +2850,10 @@ std::string ChromeContentBrowserClient::GetGeolocationApiKey() {
   return google_apis::GetAPIKey();
 }
 
-device::GeolocationSystemPermissionManager*
-ChromeContentBrowserClient::GetLocationPermissionManager() {
+device::GeolocationManager*
+ChromeContentBrowserClient::GetGeolocationManager() {
 #if defined(OS_MAC)
-  return g_browser_process->platform_part()->location_permission_manager();
+  return g_browser_process->platform_part()->geolocation_manager();
 #else
   return nullptr;
 #endif
@@ -2940,61 +2942,6 @@ bool ChromeContentBrowserClient::ShouldDenyRequestOnCertificateError(
 #endif
 
 namespace {
-
-certificate_matching::CertificatePrincipalPattern
-ParseCertificatePrincipalPattern(const base::Value* pattern) {
-  return certificate_matching::CertificatePrincipalPattern::
-      ParseFromOptionalDict(pattern, "CN", "L", "O", "OU");
-}
-
-// Attempts to auto-select a client certificate according to the value of
-// |ContentSettingsType::AUTO_SELECT_CERTIFICATE| content setting for
-// |requesting_url|. If no certificate was auto-selected, returns nullptr.
-std::unique_ptr<net::ClientCertIdentity> AutoSelectCertificate(
-    Profile* profile,
-    const GURL& requesting_url,
-    net::ClientCertIdentityList& client_certs) {
-  HostContentSettingsMap* host_content_settings_map =
-      HostContentSettingsMapFactory::GetForProfile(profile);
-  std::unique_ptr<base::Value> setting =
-      host_content_settings_map->GetWebsiteSetting(
-          requesting_url, requesting_url,
-          ContentSettingsType::AUTO_SELECT_CERTIFICATE, nullptr);
-
-  if (!setting || !setting->is_dict())
-    return nullptr;
-
-  const base::Value* filters =
-      setting->FindKeyOfType("filters", base::Value::Type::LIST);
-  if (!filters) {
-    // |setting_dict| has the wrong format (e.g. single filter instead of a
-    // list of filters). This content setting is only provided by
-    // the |PolicyProvider|, which should always set it to a valid format.
-    // Therefore, delete the invalid value.
-    host_content_settings_map->SetWebsiteSettingDefaultScope(
-        requesting_url, requesting_url,
-        ContentSettingsType::AUTO_SELECT_CERTIFICATE, nullptr);
-    return nullptr;
-  }
-
-  for (const base::Value& filter : filters->GetList()) {
-    DCHECK(filter.is_dict());
-
-    auto issuer_pattern = ParseCertificatePrincipalPattern(
-        filter.FindKeyOfType("ISSUER", base::Value::Type::DICTIONARY));
-    auto subject_pattern = ParseCertificatePrincipalPattern(
-        filter.FindKeyOfType("SUBJECT", base::Value::Type::DICTIONARY));
-    // Use the first certificate that is matched by the filter.
-    for (auto& client_cert : client_certs) {
-      if (issuer_pattern.Matches(client_cert->certificate()->issuer()) &&
-          subject_pattern.Matches(client_cert->certificate()->subject())) {
-        return std::move(client_cert);
-      }
-    }
-  }
-
-  return nullptr;
-}
 
 #if !defined(OS_ANDROID)
 blink::mojom::PreferredColorScheme ToBlinkPreferredColorScheme(
@@ -3119,7 +3066,8 @@ base::OnceClosure ChromeContentBrowserClient::SelectClientCertificate(
 #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
 
   std::unique_ptr<net::ClientCertIdentity> auto_selected_identity =
-      AutoSelectCertificate(profile, requesting_url, client_certs);
+      chrome::enterprise_util::AutoSelectCertificate(profile, requesting_url,
+                                                     client_certs);
   if (auto_selected_identity) {
     // The callback will own |auto_selected_identity| and |delegate|, keeping
     // them alive until after ContinueWithCertificate is called.
@@ -4255,18 +4203,6 @@ std::unique_ptr<content::NavigationUIData>
 ChromeContentBrowserClient::GetNavigationUIData(
     content::NavigationHandle* navigation_handle) {
   return std::make_unique<ChromeNavigationUIData>(navigation_handle);
-}
-
-void ChromeContentBrowserClient::GetHardwareSecureDecryptionCaps(
-    const std::string& key_system,
-    base::flat_set<media::VideoCodec>* video_codecs,
-    base::flat_set<media::EncryptionScheme>* encryption_schemes) {
-#if (defined(OS_WIN) || BUILDFLAG(USE_CHROMEOS_PROTECTED_MEDIA)) && \
-    BUILDFLAG(ENABLE_LIBRARY_CDMS) && BUILDFLAG(ENABLE_WIDEVINE)
-  if (key_system == kWidevineKeySystem) {
-    GetWidevineHardwareCaps(video_codecs, encryption_schemes);
-  }
-#endif
 }
 
 std::unique_ptr<content::DevToolsManagerDelegate>
@@ -5516,9 +5452,8 @@ void ChromeContentBrowserClient::LogWebFeatureForCurrentPage(
     content::RenderFrameHost* render_frame_host,
     blink::mojom::WebFeature feature) {
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
-  page_load_metrics::mojom::PageLoadFeatures new_features({feature}, {}, {});
   page_load_metrics::MetricsWebContentsObserver::RecordFeatureUsage(
-      render_frame_host, new_features);
+      render_frame_host, feature);
 
   // For the SameSite-by-default-cookies related features, log
   // the site engagement score for the site whose cookie was blocked. This is to
@@ -5945,16 +5880,14 @@ bool ChromeContentBrowserClient::SetupEmbedderSandboxParameters(
   if (sandbox_type == sandbox::policy::SandboxType::kSpeechRecognition) {
     base::FilePath soda_component_path = speech::GetSodaDirectory();
     CHECK(!soda_component_path.empty());
-    CHECK(client->SetParameter(
-        sandbox::policy::SandboxMac::kSandboxSodaComponentPath,
-        soda_component_path.value()));
+    CHECK(client->SetParameter(sandbox::policy::kParamSodaComponentPath,
+                               soda_component_path.value()));
 
     base::FilePath soda_language_pack_path =
         speech::GetSodaLanguagePacksDirectory();
     CHECK(!soda_language_pack_path.empty());
-    CHECK(client->SetParameter(
-        sandbox::policy::SandboxMac::kSandboxSodaLanguagePackPath,
-        soda_language_pack_path.value()));
+    CHECK(client->SetParameter(sandbox::policy::kParamSodaLanguagePackPath,
+                               soda_language_pack_path.value()));
     return true;
   }
 

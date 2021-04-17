@@ -258,18 +258,20 @@ std::unique_ptr<Action> ProtocolUtils::CreateAction(ActionDelegate* delegate,
     case ActionProto::ActionInfoCase::kSendClickEvent:
       return PerformOnSingleElementAction::WithClientId(
           delegate, action, action.send_click_event().client_id(),
-          base::BindOnce(&ActionDelegate::ClickOrTapElement,
-                         delegate->GetWeakPtr(), ClickType::CLICK));
+          base::BindOnce(&WebController::ClickOrTapElement,
+                         delegate->GetWebController()->GetWeakPtr(),
+                         ClickType::CLICK));
     case ActionProto::ActionInfoCase::kSendTapEvent:
       return PerformOnSingleElementAction::WithClientId(
           delegate, action, action.send_tap_event().client_id(),
-          base::BindOnce(&ActionDelegate::ClickOrTapElement,
-                         delegate->GetWeakPtr(), ClickType::TAP));
+          base::BindOnce(&WebController::ClickOrTapElement,
+                         delegate->GetWebController()->GetWeakPtr(),
+                         ClickType::TAP));
     case ActionProto::ActionInfoCase::kJsClick:
       return PerformOnSingleElementAction::WithClientId(
           delegate, action, action.js_click().client_id(),
-          base::BindOnce(&ActionDelegate::ClickOrTapElement,
-                         delegate->GetWeakPtr(), ClickType::JAVASCRIPT));
+          base::BindOnce(&WebController::JsClickElement,
+                         delegate->GetWebController()->GetWeakPtr()));
     case ActionProto::ActionInfoCase::kSendKeystrokeEvents:
       return PerformOnSingleElementAction::WithClientId(
           delegate, action, action.send_keystroke_events().client_id(),
@@ -328,13 +330,20 @@ std::unique_ptr<Action> ProtocolUtils::CreateAction(ActionDelegate* delegate,
       return std::make_unique<ReleaseElementsAction>(delegate, action);
     case ActionProto::ActionInfoCase::kDispatchJsEvent:
       return std::make_unique<DispatchJsEventAction>(delegate, action);
-    case ActionProto::ActionInfoCase::kSendKeyEvent: {
+    case ActionProto::ActionInfoCase::kSendKeyEvent:
       return PerformOnSingleElementAction::WithClientId(
           delegate, action, action.send_key_event().client_id(),
           base::BindOnce(&WebController::SendKeyEvent,
                          delegate->GetWebController()->GetWeakPtr(),
                          action.send_key_event().key_event()));
-    }
+    case ActionProto::ActionInfoCase::kSelectOptionElement:
+      return PerformOnSingleElementAction::WithClientId(
+          delegate, action, action.select_option_element().select_id(),
+          base::BindOnce(
+              &action_delegate_util::PerformWithElementValue, delegate,
+              action.select_option_element().option_id(),
+              base::BindOnce(&WebController::SelectOptionElement,
+                             delegate->GetWebController()->GetWeakPtr())));
     case ActionProto::ActionInfoCase::ACTION_INFO_NOT_SET: {
       VLOG(1) << "Encountered action with ACTION_INFO_NOT_SET";
       return std::make_unique<UnsupportedAction>(delegate, action);

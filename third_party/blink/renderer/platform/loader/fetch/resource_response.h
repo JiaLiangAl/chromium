@@ -327,7 +327,7 @@ class PLATFORM_EXPORT ResourceResponse final {
   bool WasFetchedViaSPDY() const { return was_fetched_via_spdy_; }
   void SetWasFetchedViaSPDY(bool value) { was_fetched_via_spdy_ = value; }
 
-  // See network::ResourceResponseInfo::was_fetched_via_service_worker.
+  // See network.mojom.URLResponseHead.was_fetched_via_service_worker.
   bool WasFetchedViaServiceWorker() const {
     return was_fetched_via_service_worker_;
   }
@@ -344,14 +344,6 @@ class PLATFORM_EXPORT ResourceResponse final {
     service_worker_response_source_ = value;
   }
 
-  // See network::ResourceResponseInfo::was_fallback_required_by_service_worker.
-  bool WasFallbackRequiredByServiceWorker() const {
-    return was_fallback_required_by_service_worker_;
-  }
-  void SetWasFallbackRequiredByServiceWorker(bool value) {
-    was_fallback_required_by_service_worker_ = value;
-  }
-
   network::mojom::FetchResponseType GetType() const { return response_type_; }
   void SetType(network::mojom::FetchResponseType value) {
     response_type_ = value;
@@ -364,7 +356,7 @@ class PLATFORM_EXPORT ResourceResponse final {
   int64_t GetPadding() const { return padding_; }
   void SetPadding(int64_t padding) { padding_ = padding; }
 
-  // See network::ResourceResponseInfo::url_list_via_service_worker.
+  // See network.mojom.URLResponseHead.url_list_via_service_worker.
   const Vector<KURL>& UrlListViaServiceWorker() const {
     return url_list_via_service_worker_;
   }
@@ -586,9 +578,6 @@ class PLATFORM_EXPORT ResourceResponse final {
   // kUnspecified if |was_fetched_via_service_worker| is false.
   network::mojom::FetchResponseSource service_worker_response_source_ =
       network::mojom::FetchResponseSource::kUnspecified;
-
-  // Was the fallback request with skip service worker flag required.
-  bool was_fallback_required_by_service_worker_ = false;
 
   // True if service worker navigation preload was performed due to
   // the request for this resource.

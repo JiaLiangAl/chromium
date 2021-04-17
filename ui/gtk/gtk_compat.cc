@@ -10,7 +10,6 @@
 #include "base/compiler_specific.h"
 #include "base/debug/leak_annotations.h"
 #include "base/no_destructor.h"
-#include "ui/gtk/gtk_buildflags.h"
 #include "ui/gtk/gtk_stubs.h"
 
 namespace gtk {
@@ -20,9 +19,9 @@ namespace gtk {
 
 namespace {
 
-void* DlOpen(const char* library_name) {
+void* DlOpen(const char* library_name, bool check = true) {
   void* library = dlopen(library_name, RTLD_LAZY | RTLD_GLOBAL);
-  CHECK(library);
+  CHECK(!check || library);
   return library;
 }
 
@@ -52,8 +51,8 @@ void* GetLibGdk3() {
   return libgdk3;
 }
 
-void* GetLibGtk3() {
-  static void* libgtk3 = DlOpen("libgtk-3.so.0");
+void* GetLibGtk3(bool check = true) {
+  static void* libgtk3 = DlOpen("libgtk-3.so.0", check);
   return libgtk3;
 }
 
@@ -69,7 +68,8 @@ void* GetLibGtk() {
 }
 
 bool LoadGtkImpl(int gtk_version) {
-  if (gtk_version < 4) {
+  // Prefer GTK3 for now as the GTK4 ecosystem is still immature.
+  if (GetLibGtk3(false)) {
     ui_gtk::InitializeGdk_pixbuf(GetLibGdkPixbuf());
     ui_gtk::InitializeGdk(GetLibGdk3());
     ui_gtk::InitializeGtk(GetLibGtk3());
@@ -94,7 +94,7 @@ gfx::Insets InsetsFromGtkBorder(const GtkBorder& border) {
 }  // namespace
 
 bool LoadGtk() {
-  static bool loaded = LoadGtkImpl(BUILDFLAG(GTK_VERSION));
+  static bool loaded = LoadGtkImpl(GTK_MAJOR_VERSION);
   return loaded;
 }
 
@@ -318,6 +318,39 @@ ScopedGObject<GtkIconPaintable> Gtk4IconThemeLookupByGicon(
       DlCast<GtkIconPaintable*(GtkIconTheme*, GIcon*, int, int,
                                GtkTextDirection, GtkIconLookupFlags)>(lookup)(
           theme, icon, size, scale, direction, flags));
+}
+
+DISABLE_CFI_ICALL
+GtkWidget* GtkFileChooserDialogNew(const gchar* title,
+                                   GtkWindow* parent,
+                                   GtkFileChooserAction action,
+                                   const gchar* first_button_text,
+                                   GtkResponseType first_response,
+                                   const gchar* second_button_text,
+                                   GtkResponseType second_response) {
+  static void* create = DlSym(GetLibGtk(), "gtk_file_chooser_dialog_new");
+  return DlCast<GtkWidget*(const gchar*, GtkWindow*, GtkFileChooserAction,
+                           const gchar*, ...)>(create)(
+      title, parent, action, first_button_text, first_response,
+      second_button_text, second_response, nullptr);
+}
+
+DISABLE_CFI_ICALL
+GtkTreeStore* GtkTreeStoreNew(GType type) {
+  static void* create = DlSym(GetLibGtk(), "gtk_tree_store_new");
+  return DlCast<GtkTreeStore*(gint, ...)>(create)(1, type);
+}
+
+DISABLE_CFI_ICALL
+GdkEventType GdkEventGetEventType(GdkEvent* event) {
+  static void* get = DlSym(GetLibGtk(), "gdk_event_get_event_type");
+  return DlCast<GdkEventType(GdkEvent*)>(get)(event);
+}
+
+DISABLE_CFI_ICALL
+guint32 GdkEventGetTime(GdkEvent* event) {
+  static void* get = DlSym(GetLibGtk(), "gdk_event_get_time");
+  return DlCast<guint32(GdkEvent*)>(get)(event);
 }
 
 }  // namespace gtk

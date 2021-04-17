@@ -968,6 +968,7 @@ ci.android_fyi_builder(
     configure_kitchen = True,
     kitchen_emulate_gce = True,
     os = os.LINUX_DEFAULT,
+    schedule = "triggered",  # triggered manually via Scheduler UI
 )
 
 ci.android_fyi_builder(
@@ -983,6 +984,7 @@ ci.android_fyi_builder(
     configure_kitchen = True,
     kitchen_emulate_gce = True,
     os = os.LINUX_DEFAULT,
+    schedule = "triggered",  # triggered manually via Scheduler UI
 )
 
 ci.android_fyi_builder(
@@ -3502,15 +3504,6 @@ ci.fyi_builder(
 )
 
 ci.fyi_builder(
-    name = "Linux Builder (goma cache silo)",
-    console_view_entry = consoles.console_view_entry(
-        category = "linux",
-        short_name = "lgc",
-    ),
-    os = os.LINUX_DEFAULT,
-)
-
-ci.fyi_builder(
     name = "Linux Builder (deps-cache) (reclient)",
     console_view_entry = consoles.console_view_entry(
         category = "linux",
@@ -3518,20 +3511,7 @@ ci.fyi_builder(
     ),
     goma_backend = None,
     reclient_instance = "rbe-chromium-trusted",
-    configure_kitchen = True,
-    kitchen_emulate_gce = True,
-    os = os.LINUX_DEFAULT,
-)
-
-ci.fyi_builder(
-    name = "Linux Builder (j-100) (reclient)",
-    console_view_entry = consoles.console_view_entry(
-        category = "linux",
-        short_name = "re",
-    ),
-    goma_backend = None,
-    reclient_instance = "rbe-chromium-trusted",
-    reclient_jobs = 100,
+    reclient_jobs = 250,
     configure_kitchen = True,
     kitchen_emulate_gce = True,
     os = os.LINUX_DEFAULT,
@@ -3552,16 +3532,18 @@ ci.fyi_builder(
 )
 
 ci.fyi_builder(
-    name = "Linux Builder (reclient)",
+    name = "Linux Builder (j-500) (reclient)",
     console_view_entry = consoles.console_view_entry(
         category = "linux",
         short_name = "re",
     ),
     goma_backend = None,
-    reclient_instance = "goma-rbe-chromium",
+    reclient_instance = "rbe-chromium-trusted",
+    reclient_jobs = 500,
     configure_kitchen = True,
     kitchen_emulate_gce = True,
     os = os.LINUX_DEFAULT,
+    schedule = "triggered",
 )
 
 ci.fyi_builder(
@@ -3585,7 +3567,7 @@ ci.fyi_builder(
         short_name = "dre",
     ),
     triggering_policy = scheduler.greedy_batching(
-        max_concurrent_invocations = 4,
+        max_concurrent_invocations = 1,
     ),
     goma_backend = None,
     reclient_instance = "goma-rbe-chromium",
@@ -3618,9 +3600,6 @@ ci.fyi_builder(
         category = "linux tsan",
         short_name = "rre",
     ),
-    triggering_policy = scheduler.greedy_batching(
-        max_concurrent_invocations = 3,
-    ),
     goma_backend = None,
     reclient_instance = "rbe-chromium-trusted",
     reclient_jobs = 100,
@@ -3628,6 +3607,7 @@ ci.fyi_builder(
     configure_kitchen = True,
     kitchen_emulate_gce = True,
     os = os.LINUX_DEFAULT,
+    schedule = "triggered",  # triggered manually via Scheduler UI
 )
 
 ci.fyi_builder(
@@ -3636,9 +3616,6 @@ ci.fyi_builder(
         category = "linux tsan",
         short_name = "rre",
     ),
-    triggering_policy = scheduler.greedy_batching(
-        max_concurrent_invocations = 3,
-    ),
     goma_backend = None,
     reclient_instance = "rbe-chromium-trusted",
     reclient_jobs = 250,
@@ -3646,6 +3623,7 @@ ci.fyi_builder(
     configure_kitchen = True,
     kitchen_emulate_gce = True,
     os = os.LINUX_DEFAULT,
+    schedule = "triggered",  # triggered manually via Scheduler UI
 )
 
 ci.fyi_builder(
@@ -3655,7 +3633,7 @@ ci.fyi_builder(
         short_name = "rre",
     ),
     triggering_policy = scheduler.greedy_batching(
-        max_concurrent_invocations = 3,
+        max_concurrent_invocations = 1,
     ),
     goma_backend = None,
     reclient_instance = "goma-rbe-chromium",
@@ -3672,7 +3650,7 @@ ci.fyi_builder(
         short_name = "rre",
     ),
     triggering_policy = scheduler.greedy_batching(
-        max_concurrent_invocations = 3,
+        max_concurrent_invocations = 1,
     ),
     goma_backend = None,
     reclient_instance = "rbe-chromium-gvisor-shadow",
@@ -3688,7 +3666,7 @@ ci.fyi_builder(
         short_name = "dbg",
     ),
     triggering_policy = scheduler.greedy_batching(
-        max_concurrent_invocations = 4,
+        max_concurrent_invocations = 1,
     ),
     goma_backend = None,
     reclient_instance = "goma-rbe-chromium",
@@ -3704,7 +3682,7 @@ ci.fyi_builder(
         short_name = "rel",
     ),
     triggering_policy = scheduler.greedy_batching(
-        max_concurrent_invocations = 4,
+        max_concurrent_invocations = 1,
     ),
     goma_backend = None,
     reclient_instance = "goma-rbe-chromium",
@@ -4766,15 +4744,6 @@ ci.gpu_fyi_thin_tester(
 )
 
 ci.gpu_fyi_thin_tester(
-    name = "Win7 FYI Debug (AMD)",
-    console_view_entry = consoles.console_view_entry(
-        category = "Windows|7|x86|AMD",
-        short_name = "dbg",
-    ),
-    triggered_by = ["GPU FYI Win Builder (dbg)"],
-)
-
-ci.gpu_fyi_thin_tester(
     name = "Win7 FYI Release (AMD)",
     console_view_entry = consoles.console_view_entry(
         category = "Windows|7|x86|AMD",
@@ -4805,14 +4774,6 @@ ci.gpu_fyi_windows_builder(
     name = "GPU FYI Win Builder",
     console_view_entry = consoles.console_view_entry(
         category = "Windows|Builder|Release",
-        short_name = "x86",
-    ),
-)
-
-ci.gpu_fyi_windows_builder(
-    name = "GPU FYI Win Builder (dbg)",
-    console_view_entry = consoles.console_view_entry(
-        category = "Windows|Builder|Debug",
         short_name = "x86",
     ),
 )
@@ -5187,6 +5148,17 @@ ci.linux_builder(
     main_console_view = "main",
     cq_mirrors_console_view = "mirrors",
     triggered_by = ["ci/linux-ozone-rel"],
+    tree_closing = False,
+)
+
+ci.linux_builder(
+    name = "linux-bionic-rel",
+    console_view_entry = consoles.console_view_entry(
+        category = "release",
+        short_name = "bio",
+    ),
+    main_console_view = "main",
+    os = os.LINUX_BIONIC,
     tree_closing = False,
 )
 

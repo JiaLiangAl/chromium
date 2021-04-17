@@ -221,10 +221,10 @@ SyncState GetSyncStateFromBrowserState(ChromeBrowserState* browserState) {
   PrefBackedBoolean* _articlesEnabled;
   // Preference value for the "Allow Chrome Sign-in" feature.
   PrefBackedBoolean* _allowChromeSigninPreference;
+  // PrefBackedBoolean for ArticlesForYou switch enabling.
+  PrefBackedBoolean* _contentSuggestionPolicyEnabled;
   // The item related to the switch for the show suggestions setting.
   SettingsSwitchItem* _showMemoryDebugToolsItem;
-  // The item related to the switch for the show suggestions setting.
-  SettingsSwitchItem* _articlesForYouItem;
   // The item related to the safety check.
   SettingsCheckItem* _safetyCheckItem;
 
@@ -273,6 +273,12 @@ SyncState GetSyncStateFromBrowserState(ChromeBrowserState* browserState) {
   BOOL _settingsHasBeenDismissed;
 }
 
+// The item related to the switch for the show suggestions setting.
+@property(nonatomic, strong, readonly) SettingsSwitchItem* articlesForYouItem;
+// The item related to the enterprise managed show suggestions setting.
+@property(nonatomic, strong, readonly)
+    TableViewInfoButtonItem* managedArticlesForYouItem;
+
 @property(nonatomic, readonly, weak)
     id<ApplicationCommands, BrowserCommands, BrowsingDataCommands>
         dispatcher;
@@ -288,6 +294,8 @@ SyncState GetSyncStateFromBrowserState(ChromeBrowserState* browserState) {
 
 @implementation SettingsTableViewController
 @synthesize dispatcher = _dispatcher;
+@synthesize managedArticlesForYouItem = _managedArticlesForYouItem;
+@synthesize articlesForYouItem = _articlesForYouItem;
 
 #pragma mark Initialization
 
@@ -346,6 +354,11 @@ SyncState GetSyncStateFromBrowserState(ChromeBrowserState* browserState) {
                    prefName:prefs::kArticlesForYouEnabled];
     [_articlesEnabled setObserver:self];
 
+    _contentSuggestionPolicyEnabled = [[PrefBackedBoolean alloc]
+        initWithPrefService:prefService
+                   prefName:prefs::kNTPContentSuggestionsEnabled];
+    [_contentSuggestionPolicyEnabled setObserver:self];
+
     _voiceLocaleCode.Init(prefs::kVoiceSearchLocale, prefService);
 
     _prefChangeRegistrar.Init(prefService);
@@ -388,6 +401,7 @@ SyncState GetSyncStateFromBrowserState(ChromeBrowserState* browserState) {
   [_showMemoryDebugToolsEnabled setObserver:nil];
   [_articlesEnabled setObserver:nil];
   [_allowChromeSigninPreference setObserver:nil];
+  [_contentSuggestionPolicyEnabled setObserver:nil];
 }
 
 #pragma mark View lifecycle
@@ -412,11 +426,12 @@ SyncState GetSyncStateFromBrowserState(ChromeBrowserState* browserState) {
   [super loadModel];
 
   TableViewModel<TableViewItem*>* model = self.tableViewModel;
-
   [model addSectionWithIdentifier:SettingsSectionIdentifierSignIn];
-  [self addPromoToIdentitySection];
-  [self addAccountProfileToIdentitySection];
-  [self addSyncAndGoogleServicesToIdentitySection];
+  [model addSectionWithIdentifier:SettingsSectionIdentifierAccount];
+
+  [self addPromoToSigninSection];
+  [self addAccountProfileToAccountSection];
+  [self addSyncAndGoogleServicesToAccountSection];
 
   // Defaults section.
   if (@available(iOS 14, *)) {
@@ -463,9 +478,15 @@ SyncState GetSyncStateFromBrowserState(ChromeBrowserState* browserState) {
       toSectionWithIdentifier:SettingsSectionIdentifierAdvanced];
   [model addItem:[self privacyDetailItem]
       toSectionWithIdentifier:SettingsSectionIdentifierAdvanced];
-  _articlesForYouItem = [self articlesForYouSwitchItem];
-  [model addItem:_articlesForYouItem
-      toSectionWithIdentifier:SettingsSectionIdentifierAdvanced];
+  if (!base::FeatureList::IsEnabled(kEnableIOSManagedSettingsUI) ||
+      [_contentSuggestionPolicyEnabled value]) {
+    [model addItem:self.articlesForYouItem
+        toSectionWithIdentifier:SettingsSectionIdentifierAdvanced];
+
+  } else {
+    [model addItem:self.managedArticlesForYouItem
+        toSectionWithIdentifier:SettingsSectionIdentifierAdvanced];
+  }
   [model addItem:[self languageSettingsDetailItem]
       toSectionWithIdentifier:SettingsSectionIdentifierAdvanced];
   [model addItem:[self contentSettingsDetailItem]
@@ -498,12 +519,11 @@ SyncState GetSyncStateFromBrowserState(ChromeBrowserState* browserState) {
 }
 
 // Adds the identity promo to promote the sign-in or sync state.
-- (void)addPromoToIdentitySection {
+- (void)addPromoToSigninSection {
   TableViewModel<TableViewItem*>* model = self.tableViewModel;
   AuthenticationService* authService =
       AuthenticationServiceFactory::GetForBrowserState(_browserState);
-  if (self.shouldDisplaySyncPromo ||
-      (!authService->IsAuthenticated() && self.shouldDisplaySigninPromo)) {
+  if (self.shouldDisplaySyncPromo || self.shouldDisplaySigninPromo) {
     if (!_signinPromoViewMediator) {
       _signinPromoViewMediator = [[SigninPromoViewMediator alloc]
           initWithBrowserState:_browserState
@@ -541,11 +561,8 @@ SyncState GetSyncStateFromBrowserState(ChromeBrowserState* browserState) {
   }
 }
 
-// Adds the account profile to the Identity section if the user is signed in and
-// sign-in is not disabled by policy.
-- (void)addAccountProfileToIdentitySection {
-  // If sign-in is disabled by policy, replace the sign-in / account section
-  // with an info button view item.
+// Adds the account profile to the Account section if the user is signed in.
+- (void)addAccountProfileToAccountSection {
   TableViewModel<TableViewItem*>* model = self.tableViewModel;
   if (!signin::IsSigninAllowed(_browserState->GetPrefs())) {
     TableViewItem* item = signin::IsSigninAllowedByPolicy()
@@ -560,7 +577,6 @@ SyncState GetSyncStateFromBrowserState(ChromeBrowserState* browserState) {
       AuthenticationServiceFactory::GetForBrowserState(_browserState);
   if (authService->IsAuthenticated()) {
     // Account profile item.
-    [model addSectionWithIdentifier:SettingsSectionIdentifierAccount];
     [model addItem:[self accountCellItem]
         toSectionWithIdentifier:SettingsSectionIdentifierAccount];
     _hasRecordedSigninImpression = NO;
@@ -578,7 +594,7 @@ SyncState GetSyncStateFromBrowserState(ChromeBrowserState* browserState) {
 }
 
 // Adds the Sync & Google Services options to the Identity section.
-- (void)addSyncAndGoogleServicesToIdentitySection {
+- (void)addSyncAndGoogleServicesToAccountSection {
   // Add the Account section for the Sync & Google services cell, if the
   // user is signed-out.
   TableViewModel<TableViewItem*>* model = self.tableViewModel;
@@ -611,11 +627,14 @@ SyncState GetSyncStateFromBrowserState(ChromeBrowserState* browserState) {
 // too many times by a single user account (as defined in
 // SigninPromoViewMediator).
 - (BOOL)shouldDisplaySigninPromo {
+  AuthenticationService* authService =
+      AuthenticationServiceFactory::GetForBrowserState(_browserState);
   return !base::FeatureList::IsEnabled(signin::kMobileIdentityConsistency) &&
          [SigninPromoViewMediator
              shouldDisplaySigninPromoViewWithAccessPoint:
                  signin_metrics::AccessPoint::ACCESS_POINT_SETTINGS
-                                            browserState:_browserState];
+                                            browserState:_browserState] &&
+         !authService->IsAuthenticated();
 }
 
 // Returns YES if the Sync service is available and all promos have not been
@@ -940,22 +959,47 @@ SyncState GetSyncStateFromBrowserState(ChromeBrowserState* browserState) {
   return showMemoryDebugSwitchItem;
 }
 
-- (SettingsSwitchItem*)articlesForYouSwitchItem {
-  NSString* settingTitle =
-      IsDiscoverFeedEnabled()
-          ? l10n_util::GetNSString(IDS_IOS_DISCOVER_FEED_TITLE)
-          : l10n_util::GetNSString(IDS_IOS_CONTENT_SUGGESTIONS_SETTING_TITLE);
+- (SettingsSwitchItem*)articlesForYouItem {
+  if (!_articlesForYouItem) {
+    NSString* settingTitle =
+        IsDiscoverFeedEnabled()
+            ? l10n_util::GetNSString(IDS_IOS_DISCOVER_FEED_TITLE)
+            : l10n_util::GetNSString(IDS_IOS_CONTENT_SUGGESTIONS_SETTING_TITLE);
 
-  SettingsSwitchItem* articlesForYouSwitchItem =
-      [self switchItemWithType:SettingsItemTypeArticlesForYou
-                            title:settingTitle
-                    iconImageName:kSettingsArticleSuggestionsImageName
-                  withDefaultsKey:nil
-          accessibilityIdentifier:kSettingsArticleSuggestionsCellId];
-  articlesForYouSwitchItem.on = [_articlesEnabled value];
-
-  return articlesForYouSwitchItem;
+    _articlesForYouItem =
+        [self switchItemWithType:SettingsItemTypeArticlesForYou
+                              title:settingTitle
+                      iconImageName:kSettingsArticleSuggestionsImageName
+                    withDefaultsKey:nil
+            accessibilityIdentifier:kSettingsArticleSuggestionsCellId];
+    _articlesForYouItem.on = [_articlesEnabled value];
+  }
+  return _articlesForYouItem;
 }
+
+- (TableViewInfoButtonItem*)managedArticlesForYouItem {
+  if (!_managedArticlesForYouItem) {
+    NSString* settingTitle =
+        IsDiscoverFeedEnabled()
+            ? l10n_util::GetNSString(IDS_IOS_DISCOVER_FEED_TITLE)
+            : l10n_util::GetNSString(IDS_IOS_CONTENT_SUGGESTIONS_SETTING_TITLE);
+
+    _managedArticlesForYouItem = [[TableViewInfoButtonItem alloc]
+        initWithType:SettingsItemTypeManagedArticlesForYou];
+    _managedArticlesForYouItem.image =
+        [UIImage imageNamed:kSettingsArticleSuggestionsImageName];
+    _managedArticlesForYouItem.text = settingTitle;
+    _managedArticlesForYouItem.statusText =
+        l10n_util::GetNSString(IDS_IOS_SETTING_OFF);
+    _managedArticlesForYouItem.accessibilityIdentifier =
+        kSettingsArticleSuggestionsCellId;
+    _managedArticlesForYouItem.accessibilityHint = l10n_util::GetNSString(
+        IDS_IOS_TOGGLE_SETTING_MANAGED_ACCESSIBILITY_HINT);
+  }
+
+  return _managedArticlesForYouItem;
+}
+
 #if BUILDFLAG(CHROMIUM_BRANDING) && !defined(NDEBUG)
 
 - (SettingsSwitchItem*)viewSourceSwitchItem {
@@ -1094,6 +1138,15 @@ SyncState GetSyncStateFromBrowserState(ChromeBrowserState* browserState) {
                       action:@selector(didTapSigninDisabledInfoButton:)
             forControlEvents:UIControlEventTouchUpInside];
       }
+      break;
+    }
+    case SettingsItemTypeManagedArticlesForYou: {
+      TableViewInfoButtonCell* managedCell =
+          base::mac::ObjCCastStrict<TableViewInfoButtonCell>(cell);
+      [managedCell.trailingButton
+                 addTarget:self
+                    action:@selector(didTapManagedUIInfoButton:)
+          forControlEvents:UIControlEventTouchUpInside];
       break;
     }
     default:
@@ -1445,6 +1498,33 @@ SyncState GetSyncStateFromBrowserState(ChromeBrowserState* browserState) {
   identityAccountItem.detailText = _identity.userEmail;
 }
 
+- (void)reloadSigninDisabledCell {
+  if (![self.tableViewModel
+          hasItemForItemType:SettingsItemTypeSigninDisabled
+           sectionIdentifier:SettingsSectionIdentifierSignIn]) {
+    return;
+  }
+  NSIndexPath* accountCellIndexPath = [self.tableViewModel
+      indexPathForItemType:SettingsItemTypeSigninDisabled
+         sectionIdentifier:SettingsSectionIdentifierSignIn];
+  TableViewItem* identityAccountItem = base::mac::ObjCCast<TableViewItem>(
+      [self.tableViewModel itemAtIndexPath:accountCellIndexPath]);
+  DCHECK(identityAccountItem);
+  if (signin::IsSigninAllowed(_browserState->GetPrefs())) {
+    [self.tableViewModel removeItemWithType:SettingsItemTypeSigninDisabled
+                  fromSectionWithIdentifier:SettingsSectionIdentifierSignIn];
+  } else {
+    identityAccountItem = signin::IsSigninAllowedByPolicy()
+                              ? [self signinDisabledTextItem]
+                              : [self signinDisabledByPolicyTextItem];
+  }
+  // Update the table view.
+  NSUInteger index = [self.tableViewModel
+      sectionForSectionIdentifier:SettingsSectionIdentifierSignIn];
+  [self.tableView reloadSections:[NSIndexSet indexSetWithIndex:index]
+                withRowAnimation:UITableViewRowAnimationNone];
+}
+
 - (void)reloadAccountCell {
   if (![self.tableViewModel
           hasItemForItemType:SettingsItemTypeAccount
@@ -1465,23 +1545,20 @@ SyncState GetSyncStateFromBrowserState(ChromeBrowserState* browserState) {
 
 // Reloads all sign-in promos and default buttons.
 - (void)reloadSigninSection {
-  if (![self.tableViewModel
-          hasSectionForSectionIdentifier:SettingsSectionIdentifierSignIn]) {
-    return;
+  if ([self.tableViewModel
+          hasItemForItemType:SettingsItemTypeSigninPromo
+           sectionIdentifier:SettingsSectionIdentifierSignIn] &&
+      _signinPromoViewMediator) {
+    [self configureSigninPromoWithConfigurator:[_signinPromoViewMediator
+                                                   createConfigurator]
+                               identityChanged:YES];
+  } else {
+    [self addPromoToSigninSection];
   }
-  [self.tableViewModel
-      removeSectionWithIdentifier:SettingsSectionIdentifierSignIn];
 
-  [self.tableViewModel
-      insertSectionWithIdentifier:SettingsSectionIdentifierSignIn
-                          atIndex:0];
-
-  [self addPromoToIdentitySection];
-  [self addAccountProfileToIdentitySection];
-  NSUInteger index = [self.tableViewModel
-      sectionForSectionIdentifier:SettingsSectionIdentifierSignIn];
-  [self.tableView reloadSections:[NSIndexSet indexSetWithIndex:index]
-                withRowAnimation:UITableViewRowAnimationNone];
+  [self reloadSigninDisabledCell];
+  [self reloadAccountCell];
+  [self reloadSyncAndGoogleServicesCell];
 }
 
 // Updates the Sync & Google services item to display the right icon and status
@@ -1779,11 +1856,42 @@ SyncState GetSyncStateFromBrowserState(ChromeBrowserState* browserState) {
     _showMemoryDebugToolsItem.on = [_showMemoryDebugToolsEnabled value];
     // Update the Cell.
     [self reconfigureCellsForItems:@[ _showMemoryDebugToolsItem ]];
-  } else if (observableBoolean == _articlesEnabled) {
-    _articlesForYouItem.on = [_articlesEnabled value];
-    [self reconfigureCellsForItems:@[ _articlesForYouItem ]];
   } else if (observableBoolean == _allowChromeSigninPreference) {
     [self reloadSigninSection];
+  } else if (observableBoolean == _articlesEnabled) {
+    self.articlesForYouItem.on = [_articlesEnabled value];
+    [self reconfigureCellsForItems:@[ self.articlesForYouItem ]];
+  } else if (observableBoolean == _contentSuggestionPolicyEnabled) {
+    if (!base::FeatureList::IsEnabled(kEnableIOSManagedSettingsUI))
+      return;
+
+    NSIndexPath* itemIndexPath;
+    NSInteger itemTypeToRemove;
+    TableViewItem* itemToAdd;
+    if ([_contentSuggestionPolicyEnabled value]) {
+      if (![self.tableViewModel hasItem:self.managedArticlesForYouItem]) {
+        return;
+      }
+      itemIndexPath =
+          [self.tableViewModel indexPathForItem:self.managedArticlesForYouItem];
+      itemTypeToRemove = SettingsItemTypeManagedArticlesForYou;
+      itemToAdd = self.articlesForYouItem;
+    } else {
+      if (![self.tableViewModel hasItem:self.articlesForYouItem]) {
+        return;
+      }
+      itemIndexPath =
+          [self.tableViewModel indexPathForItem:self.articlesForYouItem];
+      itemTypeToRemove = SettingsItemTypeArticlesForYou;
+      itemToAdd = self.managedArticlesForYouItem;
+    }
+    [self.tableViewModel removeItemWithType:itemTypeToRemove
+                  fromSectionWithIdentifier:SettingsSectionIdentifierAdvanced];
+    [self.tableViewModel insertItem:itemToAdd
+            inSectionWithIdentifier:SettingsSectionIdentifierAdvanced
+                            atIndex:itemIndexPath.row];
+    [self.tableView reloadRowsAtIndexPaths:@[ itemIndexPath ]
+                          withRowAnimation:UITableViewRowAnimationAutomatic];
   } else {
     NOTREACHED();
   }

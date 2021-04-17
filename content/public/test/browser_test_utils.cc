@@ -124,6 +124,7 @@
 #include "ui/events/gesture_detection/gesture_configuration.h"
 #include "ui/events/keycodes/dom/dom_code.h"
 #include "ui/events/keycodes/dom/keycode_converter.h"
+#include "ui/gfx/geometry/point_f.h"
 #include "ui/latency/latency_info.h"
 #include "ui/resources/grit/webui_generated_resources.h"
 
@@ -401,7 +402,7 @@ CrossSiteRedirectResponseHandler(const net::EmbeddedTestServer* test_server,
     length_of_chosen_prefix = prefix_307.length();
   } else {
     // Unrecognized prefix - let somebody else handle this request.
-    return std::unique_ptr<net::test_server::HttpResponse>();
+    return nullptr;
   }
   std::string params = request.relative_url.substr(length_of_chosen_prefix);
 
@@ -409,7 +410,7 @@ CrossSiteRedirectResponseHandler(const net::EmbeddedTestServer* test_server,
   // one '/' character is expected.
   size_t slash = params.find('/');
   if (slash == std::string::npos)
-    return std::unique_ptr<net::test_server::HttpResponse>();
+    return nullptr;
 
   // Replace the host of the URL with the one passed in the URL.
   GURL::Replacements replace_host;
@@ -961,29 +962,37 @@ void SimulateMouseClickAt(WebContents* web_contents,
                                                             ui::LatencyInfo());
 }
 
+gfx::PointF GetCenterCoordinatesOfElementWithId(
+    content::WebContents* web_contents,
+    const std::string& id) {
+  float x = EvalJs(web_contents,
+                   JsReplace("const bounds = "
+                             "document.getElementById($1)."
+                             "getBoundingClientRect();"
+                             "Math.floor(bounds.left + bounds.width / 2)",
+                             id))
+                .ExtractDouble();
+  float y = EvalJs(web_contents,
+                   JsReplace("const bounds = "
+                             "document.getElementById($1)."
+                             "getBoundingClientRect();"
+                             "Math.floor(bounds.top + bounds.height / 2)",
+                             id))
+                .ExtractDouble();
+  return gfx::PointF(x, y);
+}
+
 void SimulateMouseClickOrTapElementWithId(content::WebContents* web_contents,
                                           const std::string& id) {
-  // Get the center coordinates of the DOM element.
-  const int x = EvalJs(web_contents,
-                       JsReplace("const bounds = "
-                                 "document.getElementById($1)."
-                                 "getBoundingClientRect();"
-                                 "Math.floor(bounds.left + bounds.width / 2)",
-                                 id))
-                    .ExtractInt();
-  const int y = EvalJs(web_contents,
-                       JsReplace("const bounds = "
-                                 "document.getElementById($1)."
-                                 "getBoundingClientRect();"
-                                 "Math.floor(bounds.top + bounds.height / 2)",
-                                 id))
-                    .ExtractInt();
+  gfx::Point point = gfx::ToFlooredPoint(
+      GetCenterCoordinatesOfElementWithId(web_contents, id));
+
 #if defined(OS_ANDROID)
-  SimulateTapDownAt(web_contents, gfx::Point(x, y));
-  SimulateTapAt(web_contents, gfx::Point(x, y));
+  SimulateTapDownAt(web_contents, point);
+  SimulateTapAt(web_contents, point);
 #else
   SimulateMouseClickAt(web_contents, 0, blink::WebMouseEvent::Button::kLeft,
-                       gfx::Point(x, y));
+                       point);
 #endif  // defined(OS_ANDROID)
 }
 
@@ -1368,28 +1377,6 @@ bool ExecuteScriptAndExtractString(const ToRenderFrameHost& adapter,
   return ExecuteScriptHelper(adapter.render_frame_host(), script, true,
                              ISOLATED_WORLD_ID_GLOBAL, &value) &&
          value && value->GetAsString(result);
-}
-
-bool ExecuteScriptWithoutUserGestureAndExtractDouble(
-    const ToRenderFrameHost& adapter,
-    const std::string& script,
-    double* result) {
-  DCHECK(result);
-  std::unique_ptr<base::Value> value;
-  return ExecuteScriptHelper(adapter.render_frame_host(), script, false,
-                             ISOLATED_WORLD_ID_GLOBAL, &value) &&
-         value && value->GetAsDouble(result);
-}
-
-bool ExecuteScriptWithoutUserGestureAndExtractInt(
-    const ToRenderFrameHost& adapter,
-    const std::string& script,
-    int* result) {
-  DCHECK(result);
-  std::unique_ptr<base::Value> value;
-  return ExecuteScriptHelper(adapter.render_frame_host(), script, false,
-                             ISOLATED_WORLD_ID_GLOBAL, &value) &&
-         value && value->GetAsInteger(result);
 }
 
 bool ExecuteScriptWithoutUserGestureAndExtractBool(

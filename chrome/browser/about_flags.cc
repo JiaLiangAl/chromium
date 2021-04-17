@@ -2490,6 +2490,15 @@ const FeatureEntry::FeatureVariation
 };
 #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
 
+#if BUILDFLAG(IS_CHROMEOS_ASH)
+const FeatureEntry::FeatureParam kCategoricalSearch_Unranked[] = {
+    {"ranking", "none"}};
+
+const FeatureEntry::FeatureVariation kCategoricalSearchVariations[] = {
+    {"Unranked", kCategoricalSearch_Unranked,
+     base::size(kCategoricalSearch_Unranked), nullptr}};
+#endif  // BUILDFLAG(IS_CHROMEOS_ASH)
+
 constexpr FeatureEntry::FeatureParam kPlatformProvidedTrustTokenIssuance[] = {
     {"PlatformProvidedTrustTokenIssuance", "true"}};
 
@@ -2855,9 +2864,6 @@ const FeatureEntry kFeatureEntries[] = {
     {"dark-light-mode", flag_descriptions::kDarkLightTestName,
      flag_descriptions::kDarkLightTestDescription, kOsCrOS,
      FEATURE_VALUE_TYPE(ash::features::kDarkLightMode)},
-    {"enhanced-desks", flag_descriptions::kBentoName,
-     flag_descriptions::kBentoDescription, kOsCrOS,
-     FEATURE_VALUE_TYPE(ash::features::kBento)},
     {"screen-capture", flag_descriptions::kScreenCaptureTestName,
      flag_descriptions::kScreenCaptureTestDescription, kOsCrOS,
      FEATURE_VALUE_TYPE(ash::features::kCaptureMode)},
@@ -4122,9 +4128,6 @@ const FeatureEntry kFeatureEntries[] = {
     {"files-zip-unpack", flag_descriptions::kFilesZipUnpackName,
      flag_descriptions::kFilesZipUnpackDescription, kOsCrOS,
      FEATURE_VALUE_TYPE(chromeos::features::kFilesZipUnpack)},
-    {"files-unified-media-view", flag_descriptions::kUnifiedMediaViewName,
-     flag_descriptions::kUnifiedMediaViewDescription, kOsCrOS,
-     FEATURE_VALUE_TYPE(chromeos::features::kUnifiedMediaView)},
     {"force-spectre-v2-mitigation",
      flag_descriptions::kForceSpectreVariant2MitigationName,
      flag_descriptions::kForceSpectreVariant2MitigationDescription, kOsCrOS,
@@ -4147,11 +4150,11 @@ const FeatureEntry kFeatureEntries[] = {
      FEATURE_VALUE_TYPE(features::kGdiTextPrinting)},
 #endif  // defined(OS_WIN)
 
-#if defined(OS_WIN) || defined(OS_MAC)
+#if defined(OS_MAC)
     {"new-usb-backend", flag_descriptions::kNewUsbBackendName,
-     flag_descriptions::kNewUsbBackendDescription, kOsWin | kOsMac,
+     flag_descriptions::kNewUsbBackendDescription, kOsMac,
      FEATURE_VALUE_TYPE(device::kNewUsbBackend)},
-#endif  // defined(OS_WIN) || defined(OS_MAC)
+#endif  // defined(OS_MAC)
 
 #if defined(OS_ANDROID)
     {"omnibox-adaptive-suggestions-count",
@@ -4386,11 +4389,6 @@ const FeatureEntry kFeatureEntries[] = {
      flag_descriptions::kAppMenuMobileSiteOptionDescription, kOsAndroid,
      FEATURE_VALUE_TYPE(chrome::android::kAppMenuMobileSiteOption)},
 #endif  // OS_ANDROID
-
-    {"omnibox-display-title-for-current-url",
-     flag_descriptions::kOmniboxDisplayTitleForCurrentUrlName,
-     flag_descriptions::kOmniboxDisplayTitleForCurrentUrlDescription, kOsAll,
-     FEATURE_VALUE_TYPE(omnibox::kDisplayTitleForCurrentUrl)},
 
     {"force-color-profile", flag_descriptions::kForceColorProfileName,
      flag_descriptions::kForceColorProfileDescription, kOsAll,
@@ -4655,6 +4653,10 @@ const FeatureEntry kFeatureEntries[] = {
      flag_descriptions::kDirectManipulationStylusDescription,
      kOsWin | kOsMac | kOsLinux,
      FEATURE_VALUE_TYPE(features::kDirectManipulationStylus)},
+
+    {"webui-feedback", flag_descriptions::kWebuiFeedbackName,
+     flag_descriptions::kWebuiFeedbackDescription, kOsDesktop,
+     FEATURE_VALUE_TYPE(features::kWebUIFeedback)},
 #endif  // defined(OS_WIN) || defined(OS_MAC) || defined(OS_LINUX) ||
         // defined(OS_CHROMEOS)
 
@@ -4960,24 +4962,11 @@ const FeatureEntry kFeatureEntries[] = {
                                     kLazyFrameLoadingVariations,
                                     "LazyLoad")},
 
-    {"autofill-cache-query-responses",
-     flag_descriptions::kAutofillCacheQueryResponsesName,
-     flag_descriptions::kAutofillCacheQueryResponsesDescription, kOsAll,
-     FEATURE_VALUE_TYPE(autofill::features::kAutofillCacheQueryResponses)},
-
     {"autofill-enable-toolbar-status-chip",
      flag_descriptions::kAutofillEnableToolbarStatusChipName,
      flag_descriptions::kAutofillEnableToolbarStatusChipDescription,
      kOsMac | kOsWin | kOsLinux,
      FEATURE_VALUE_TYPE(autofill::features::kAutofillEnableToolbarStatusChip)},
-
-#if defined(USE_AURA)
-    {"touchpad-overscroll-history-navigation",
-     flag_descriptions::kTouchpadOverscrollHistoryNavigationName,
-     flag_descriptions::kTouchpadOverscrollHistoryNavigationDescription,
-     kOsWin | kOsCrOS,
-     FEATURE_VALUE_TYPE(features::kTouchpadOverscrollHistoryNavigation)},
-#endif
 
     {"unsafely-treat-insecure-origin-as-secure",
      flag_descriptions::kTreatInsecureOriginAsSecureName,
@@ -6574,6 +6563,14 @@ const FeatureEntry kFeatureEntries[] = {
      FEATURE_VALUE_TYPE(chromeos::features::kCdmFactoryDaemon)},
 #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
 
+#if BUILDFLAG(IS_CHROMEOS_ASH)
+    {"categorical-search", flag_descriptions::kCategoricalSearchName,
+     flag_descriptions::kCategoricalSearchName, kOsCrOS,
+     FEATURE_WITH_PARAMS_VALUE_TYPE(app_list_features::kCategoricalSearch,
+                                    kCategoricalSearchVariations,
+                                    "LauncherCategoricalSearch")},
+#endif  // BUILDFLAG(IS_CHROMEOS_ASH)
+
     {"autofill-enable-offers-in-downstream",
      flag_descriptions::kAutofillEnableOffersInDownstreamName,
      flag_descriptions::kAutofillEnableOffersInDownstreamDescription, kOsAll,
@@ -7055,12 +7052,13 @@ const FeatureEntry kFeatureEntries[] = {
      flag_descriptions::kEnableRestrictedWebApisDescription, kOsCrOS,
      FEATURE_VALUE_TYPE(features::kEnableRestrictedWebApis)},
 
-    {"clear-cross-browsing-context-group-main-frame-name",
-     flag_descriptions::kClearCrossBrowsingContextGroupMainFrameNameName,
-     flag_descriptions::kClearCrossBrowsingContextGroupMainFrameNameDescription,
+    {"clear-cross-site-cross-browsing-context-group-window-name",
+     flag_descriptions::kClearCrossSiteCrossBrowsingContextGroupWindowNameName,
+     flag_descriptions::
+         kClearCrossSiteCrossBrowsingContextGroupWindowNameDescription,
      kOsAll,
      FEATURE_VALUE_TYPE(
-         features::kClearCrossBrowsingContextGroupMainFrameName)},
+         features::kClearCrossSiteCrossBrowsingContextGroupWindowName)},
 
     {"sync-compromised-credentials",
      flag_descriptions::kSyncingCompromisedCredentialsName,
@@ -7208,6 +7206,12 @@ const FeatureEntry kFeatureEntries[] = {
      flag_descriptions::kDesktopPWAsAppIconShortcutsMenuUIDescription, kOsCrOS,
      FEATURE_VALUE_TYPE(features::kDesktopPWAsAppIconShortcutsMenuUI)},
 #endif
+
+    {"muting-compromised-credentials",
+     flag_descriptions::kMutingCompromisedCredentialsName,
+     flag_descriptions::kMutingCompromisedCredentialsDescription, kOsAll,
+     FEATURE_VALUE_TYPE(
+         password_manager::features::kMutingCompromisedCredentials)},
 
     // NOTE: Adding a new flag requires adding a corresponding entry to enum
     // "LoginCustomFlags" in tools/metrics/histograms/enums.xml. See "Flag

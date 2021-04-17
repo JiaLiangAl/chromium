@@ -190,7 +190,7 @@ class AppListViewTest : public views::ViewsTestBase,
     delegate_->SetIsTabletModeEnabled(is_tablet_mode);
     view_ = new AppListView(delegate_.get());
     view_->InitView(GetContext());
-    test_api_.reset(new AppsGridViewTestApi(apps_grid_view()));
+    test_api_ = std::make_unique<AppsGridViewTestApi>(apps_grid_view());
     EXPECT_FALSE(view_->GetWidget()->IsVisible());
   }
 
@@ -453,7 +453,7 @@ class AppListViewFocusTest : public views::ViewsTestBase,
     view_ = new AppListView(delegate_.get());
     view_->InitView(GetContext());
     Show();
-    test_api_.reset(new AppsGridViewTestApi(apps_grid_view()));
+    test_api_ = std::make_unique<AppsGridViewTestApi>(apps_grid_view());
     suggestions_container_ = contents_view()
                                  ->apps_container_view()
                                  ->suggestion_chip_container_view_for_test();
@@ -2048,8 +2048,7 @@ TEST_F(AppListViewTest, TapAndClickWithinAppsGridView) {
   // Tap on the same empty region, the AppList should close again.
   ui::MouseEvent mouse_click(ui::ET_MOUSE_PRESSED, empty_region, empty_region,
                              base::TimeTicks(), 0, 0);
-  std::unique_ptr<ui::Event::DispatcherApi> mouse_click_dispatcher_api;
-  mouse_click_dispatcher_api = std::make_unique<ui::Event::DispatcherApi>(
+  auto mouse_click_dispatcher_api = std::make_unique<ui::Event::DispatcherApi>(
       static_cast<ui::Event*>(&mouse_click));
   mouse_click_dispatcher_api->set_target(view_);
   view_->OnMouseEvent(&mouse_click);
@@ -2582,8 +2581,7 @@ TEST_F(AppListViewTest, ClickOutsideEmbeddedAssistantUIToPeeking) {
   const gfx::Point empty_region = view_->GetBoundsInScreen().origin();
   ui::MouseEvent mouse_click(ui::ET_MOUSE_PRESSED, empty_region, empty_region,
                              base::TimeTicks(), 0, 0);
-  std::unique_ptr<ui::Event::DispatcherApi> mouse_click_dispatcher_api;
-  mouse_click_dispatcher_api =
+  auto mouse_click_dispatcher_api =
       std::make_unique<ui::Event::DispatcherApi>(&mouse_click);
   mouse_click_dispatcher_api->set_target(view_);
   view_->OnMouseEvent(&mouse_click);

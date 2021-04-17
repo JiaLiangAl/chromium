@@ -552,7 +552,7 @@ void NGOutOfFlowLayoutPart::HandleMulticolsWithPendingOOFs(
 void NGOutOfFlowLayoutPart::LayoutOOFsInMulticol(const NGBlockNode& multicol) {
   HeapVector<NGLogicalOutOfFlowPositionedNode> oof_nodes_to_layout;
   HeapVector<MulticolChildInfo> multicol_children;
-  const NGBlockBreakToken* previous_column_break_token = nullptr;
+  const NGBlockBreakToken* current_column_break_token = nullptr;
   LayoutUnit column_inline_progression = kIndefiniteSize;
 
   NGConstraintSpace multicol_constraint_space =
@@ -573,8 +573,6 @@ void NGOutOfFlowLayoutPart::LayoutOOFsInMulticol(const NGBlockNode& multicol) {
     WritingDirectionMode writing_direction = style.GetWritingDirection();
     const WritingModeConverter converter(writing_direction,
                                          multicol_box_fragment->Size());
-    const NGBlockBreakToken* current_column_break_token =
-        previous_column_break_token;
     wtf_size_t current_column_index = 0;
 
     if (column_inline_progression == kIndefiniteSize) {
@@ -607,7 +605,7 @@ void NGOutOfFlowLayoutPart::LayoutOOFsInMulticol(const NGBlockNode& multicol) {
           *fragment, offset, /* inline_container */ nullptr,
           /* margin_strut */ nullptr, /* is_self_collapsing */ false,
           /* offset_includes_relative_position */ false,
-          /* propagate_oof_descendants */ false);
+          /* adjustment_for_oof_propagation */ base::nullopt);
       multicol_children.emplace_back(MulticolChildInfo(&child));
     }
 
@@ -650,21 +648,6 @@ void NGOutOfFlowLayoutPart::LayoutOOFsInMulticol(const NGBlockNode& multicol) {
                                 fixedpos_containing_block_fragment->Size());
       }
 
-      // The containing block offset should be the offset from the top of the
-      // inner multicol to the start of the containing block (as if all of the
-      // columns are placed one on top of the other). When propagating OOFs
-      // in a nested fragmentation context, we miss the block contribution
-      // from columns in previous outer fragmentainers. Add the block size
-      // for such columns here to account for this.
-      if (previous_column_break_token) {
-        containing_block_offset.block_offset +=
-            previous_column_break_token->ConsumedBlockSize();
-        if (fixedpos_containing_block_fragment) {
-          fixedpos_containing_block_offset.block_offset +=
-              previous_column_break_token->ConsumedBlockSize();
-        }
-      }
-
       // The static position should remain relative to its containing block
       // fragment.
       const WritingModeConverter containing_block_converter(
@@ -684,7 +667,6 @@ void NGOutOfFlowLayoutPart::LayoutOOFsInMulticol(const NGBlockNode& multicol) {
                                    fixedpos_containing_block_fragment)};
       oof_nodes_to_layout.push_back(node);
     }
-    previous_column_break_token = current_column_break_token;
   }
   DCHECK(!oof_nodes_to_layout.IsEmpty());
   DCHECK(!multicol_container_builder.HasOutOfFlowFragmentainerDescendants());
@@ -694,6 +676,16 @@ void NGOutOfFlowLayoutPart::LayoutOOFsInMulticol(const NGBlockNode& multicol) {
                         &multicol_container_builder)
       .LayoutFragmentainerDescendants(
           &oof_nodes_to_layout, column_inline_progression, &multicol_children);
+
+  // Any descendants should have been handled in
+  // LayoutFragmentainerDescendants(). However, if there were any candidates
+  // found, pass them back to |container_builder_| so they can continue
+  // propagating up the tree.
+  // TODO(almaher): Handle the case where a fixedpos containing block lives
+  // in an outer multicol.
+  DCHECK(!multicol_container_builder.HasOutOfFlowPositionedDescendants());
+  DCHECK(!multicol_container_builder.HasOutOfFlowFragmentainerDescendants());
+  multicol_container_builder.TransferOutOfFlowCandidates(container_builder_);
 
   // Handle any inner multicols with OOF descendants that may have propagated up
   // while laying out the direct OOF descendants of the current multicol.
@@ -884,7 +876,7 @@ const NGLayoutResult* NGOutOfFlowLayoutPart::LayoutOOFNode(
       // have the same logic in legacy layout in
       // |LayoutBlockFlow::UpdateBlockLayout()|.
       if (node_info.node.GetLayoutBox()->IntrinsicLogicalWidthsDirty() &&
-          AbsoluteNeedsChildInlineSize(node_info.node)) {
+          offset_info.inline_size_depends_on_min_max_sizes) {
         // Freeze the scrollbars for this layout pass. We don't want them to
         // change *again*.
         freeze_scrollbars.emplace();
@@ -911,7 +903,7 @@ NGOutOfFlowLayoutPart::OffsetInfo NGOutOfFlowLayoutPart::CalculateOffset(
       candidate_style.GetWritingDirection();
   const auto container_writing_direction =
       node_info.container_info.writing_direction;
-  LogicalSize container_content_size_in_candidate_writing_mode =
+  const LogicalSize container_content_size_in_candidate_writing_mode =
       node_info.container_physical_content_size.ConvertToLogical(
           candidate_writing_direction.GetWritingMode());
 
@@ -936,130 +928,38 @@ NGOutOfFlowLayoutPart::OffsetInfo NGOutOfFlowLayoutPart::CalculateOffset(
     }
   }
 
-  NGBoxStrut border_padding =
+  const NGBoxStrut border_padding =
       ComputeBorders(node_info.constraint_space, node_info.node) +
       ComputePadding(node_info.constraint_space, candidate_style);
 
-  // In order to calculate the offsets, we may need to know the size.
+  base::Optional<LogicalSize> replaced_size;
+  if (node_info.node.IsReplaced()) {
+    replaced_size =
+        ComputeReplacedSize(node_info.node, node_info.constraint_space);
+  }
+
+  offset_info.inline_size_depends_on_min_max_sizes =
+      ComputeOutOfFlowInlineDimensions(
+          node_info.node, node_info.constraint_space, border_padding,
+          node_info.static_position, replaced_size, container_writing_direction,
+          &offset_info.node_dimensions);
+
+  // We may have already pre-computed our block-dimensions when determining
+  // our min/max sizes, only run if needed.
+  if (offset_info.node_dimensions.size.block_size == kIndefiniteSize) {
+    offset_info.initial_layout_result = ComputeOutOfFlowBlockDimensions(
+        node_info.node, node_info.constraint_space, border_padding,
+        node_info.static_position, replaced_size, container_writing_direction,
+        &offset_info.node_dimensions);
+  }
+  offset_info.block_estimate = offset_info.node_dimensions.size.block_size;
 
   // In some cases we will need the fragment size in order to calculate the
   // offset. We may have to lay out to get the fragment size. For block
   // fragmentation, we *need* to know the block-offset before layout. In other
   // words, in that case, we may have to lay out, calculate the offset, and
   // then lay out again at the correct block-offset.
-
-  bool has_computed_block_dimensions = false;
-  bool is_replaced = node_info.node.IsReplaced();
-  bool should_be_considered_as_replaced =
-      node_info.node.ShouldBeConsideredAsReplaced();
-  offset_info.absolute_needs_child_block_size =
-      AbsoluteNeedsChildBlockSize(node_info.node);
-  base::Optional<MinMaxSizes> min_max_sizes;
-  base::Optional<MinMaxSizes> minmax_intrinsic_sizes_for_ar;
-
-  // We also include items with aspect ratio here, because if the inline size
-  // is auto and we have a definite block size, we want to use that for the
-  // inline size calculation.
-  bool compute_inline_from_ar =
-      IsInlineSizeComputableFromBlockSize(node_info.node) && !is_replaced;
-  if (AbsoluteNeedsChildInlineSize(node_info.node) ||
-      NeedMinMaxSize(candidate_style) || should_be_considered_as_replaced ||
-      compute_inline_from_ar) {
-    // If we can determine our block-size ahead of time (it doesn't depend on
-    // our content), set this as our fixed block-size for any %-block-size
-    // children to resolve against.
-    if (!offset_info.absolute_needs_child_block_size && !is_replaced) {
-      ComputeOutOfFlowBlockDimensions(
-          node_info.node, node_info.constraint_space, border_padding,
-          node_info.static_position, base::nullopt, base::nullopt,
-          container_writing_direction, &offset_info.node_dimensions);
-      has_computed_block_dimensions = true;
-    }
-
-    LogicalSize available_size =
-        container_content_size_in_candidate_writing_mode;
-    if (has_computed_block_dimensions)
-      available_size.block_size = offset_info.node_dimensions.size.block_size;
-
-    NGConstraintSpaceBuilder builder(candidate_style.GetWritingMode(),
-                                     candidate_style.GetWritingDirection(),
-                                     /* is_new_fc */ true);
-    builder.SetAvailableSize(available_size);
-    builder.SetPercentageResolutionSize(
-        container_content_size_in_candidate_writing_mode);
-    if (has_computed_block_dimensions)
-      builder.SetIsFixedBlockSize(true);
-    const auto space = builder.ToConstraintSpace();
-
-    if (compute_inline_from_ar &&
-        candidate_style.OverflowInlineDirection() == EOverflow::kVisible) {
-      minmax_intrinsic_sizes_for_ar =
-          node_info.node
-              .ComputeMinMaxSizes(candidate_writing_direction.GetWritingMode(),
-                                  MinMaxSizesType::kIntrinsic, space)
-              .sizes;
-    }
-
-    min_max_sizes =
-        node_info.node
-            .ComputeMinMaxSizes(candidate_writing_direction.GetWritingMode(),
-                                MinMaxSizesType::kContent, space)
-            .sizes;
-  }
-
-  base::Optional<LogicalSize> replaced_size;
-  if (is_replaced) {
-    replaced_size = ComputeReplacedSize(
-        node_info.node, node_info.constraint_space, min_max_sizes);
-  }
-
-  ComputeOutOfFlowInlineDimensions(
-      node_info.node, node_info.constraint_space, border_padding,
-      node_info.static_position, min_max_sizes, minmax_intrinsic_sizes_for_ar,
-      replaced_size, container_writing_direction, &offset_info.node_dimensions);
-
-  // Elements with only an aspect-ratio compute their block-size from
-  // inline-size and aspect-ratio.
-  // https://www.w3.org/TR/css-sizing-3/#intrinsic-sizes
-  if (!is_replaced && !candidate_style.AspectRatio().IsAuto()) {
-    replaced_size =
-        LogicalSize(offset_info.node_dimensions.size.inline_size,
-                    BlockSizeFromAspectRatio(
-                        border_padding, candidate_style.LogicalAspectRatio(),
-                        candidate_style.BoxSizingForAspectRatio(),
-                        offset_info.node_dimensions.size.inline_size));
-  }
-
-  if (offset_info.absolute_needs_child_block_size) {
-    DCHECK(!has_computed_block_dimensions);
-    offset_info.initial_layout_result = GenerateFragment(
-        node_info.node, container_content_size_in_candidate_writing_mode,
-        offset_info.block_estimate, offset_info.node_dimensions,
-        /* block_offset */ LayoutUnit(),
-        /* break_token */ nullptr,
-        /* fragmentainer_constraint_space */ nullptr,
-        /* should_use_fixed_block_size */ false);
-
-    // TODO(layout-dev): Handle abortions caused by block fragmentation.
-    DCHECK(offset_info.initial_layout_result->Status() !=
-           NGLayoutResult::kOutOfFragmentainerSpace);
-
-    NGFragment fragment(candidate_writing_direction,
-                        offset_info.initial_layout_result->PhysicalFragment());
-
-    offset_info.block_estimate = fragment.BlockSize();
-  }
-
-  // We may have already pre-computed our block-dimensions when determining
-  // our |min_max_sizes|, only run if needed.
-  if (!has_computed_block_dimensions) {
-    ComputeOutOfFlowBlockDimensions(
-        node_info.node, node_info.constraint_space, border_padding,
-        node_info.static_position, offset_info.block_estimate, replaced_size,
-        container_writing_direction, &offset_info.node_dimensions);
-    has_computed_block_dimensions = true;
-  }
-  offset_info.block_estimate = offset_info.node_dimensions.size.block_size;
+  offset_info.block_size_depends_on_layout = offset_info.initial_layout_result;
 
   // Calculate the offsets.
   NGBoxStrut inset = offset_info.node_dimensions.inset
@@ -1102,10 +1002,8 @@ const NGLayoutResult* NGOutOfFlowLayoutPart::Layout(
   // estimating the block-size.
   if (!layout_result) {
     bool should_use_fixed_block_size = !!offset_info.block_estimate;
-    if (fragmentainer_constraint_space) {
-      should_use_fixed_block_size &=
-          !offset_info.absolute_needs_child_block_size;
-    }
+    if (fragmentainer_constraint_space)
+      should_use_fixed_block_size &= !offset_info.block_size_depends_on_layout;
 
     layout_result = GenerateFragment(
         node_info.node, container_content_size_in_candidate_writing_mode,
@@ -1317,9 +1215,14 @@ void NGOutOfFlowLayoutPart::AddOOFToFragmentainer(
     additional_fixedpos_offset.block_offset +=
         descendant.break_token->ConsumedBlockSize();
   }
+
+  LayoutUnit containing_block_adjustment =
+      container_builder_->BlockOffsetAdjustmentForFragmentainer(
+          fragmentainer_consumed_block_size_);
+
   container_builder_->PropagateOOFPositionedInfo(
       result->PhysicalFragment(), result->OutOfFlowPositionedOffset(),
-      fragmentainer_consumed_block_size_, /* inline_container */ nullptr,
+      /* inline_container */ nullptr, containing_block_adjustment,
       &descendant.node_info.fixedpos_containing_block,
       additional_fixedpos_offset);
   algorithm->AppendOutOfFlowResult(result);
@@ -1374,7 +1277,7 @@ void NGOutOfFlowLayoutPart::ReplaceFragmentainer(
         new_result->PhysicalFragment(), offset, /* inline_container */ nullptr,
         /* margin_strut */ nullptr, /* is_self_collapsing */ false,
         /* offset_includes_relative_position */ false,
-        /* propagate_oof_descendants */ false);
+        /* adjustment_for_oof_propagation */ base::nullopt);
   } else {
     const NGLayoutResult* new_result = algorithm->Layout();
     node.ReplaceColumnResult(new_result, fragment);
@@ -1554,10 +1457,8 @@ NGLogicalStaticPosition NGOutOfFlowLayoutPart::ToStaticPositionForLegacy(
     NGLogicalStaticPosition position) const {
   // Legacy expects the static position to include the block contribution from
   // previous columns.
-  if (container_builder_->IsFragmentainerBoxType()) {
-    if (const auto* break_token = container_builder_->PreviousBreakToken())
-      position.offset.block_offset += break_token->ConsumedBlockSize();
-  }
+  if (const auto* break_token = container_builder_->PreviousBreakToken())
+    position.offset.block_offset += break_token->ConsumedBlockSize();
   return position;
 }
 

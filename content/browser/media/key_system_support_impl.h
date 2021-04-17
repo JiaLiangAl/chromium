@@ -22,14 +22,9 @@ class CONTENT_EXPORT KeySystemSupportImpl final
   KeySystemSupportImpl();
   ~KeySystemSupportImpl() final;
 
-  // Create a KeySystemSupportImpl object and bind it to |receiver|.
+  // Create a KeySystemSupportImpl object and bind it to `receiver`.
   static void Create(
       mojo::PendingReceiver<media::mojom::KeySystemSupport> receiver);
-
-  // Returns CdmInfo registered for |key_system|. Returns null if no CdmInfo is
-  // registered for |key_system|, or if the CdmInfo registered is invalid.
-  static std::unique_ptr<CdmInfo> GetCdmInfoForKeySystem(
-      const std::string& key_system);
 
   // media::mojom::KeySystemSupport implementation.
   void IsKeySystemSupported(const std::string& key_system,

@@ -186,9 +186,11 @@ bool ExecutionContext::SharedArrayBufferTransferAllowed() const {
   return false;
 #else
   // On desktop, enable transfer for the reverse Origin Trial, or if the
-  // Finch "kill switch" is on.
+  // Finch "kill switch" is on, or if enabled by Enterprise Policy.
   return RuntimeEnabledFeatures::UnrestrictedSharedArrayBufferEnabled(this) ||
-         RuntimeEnabledFeatures::SharedArrayBufferOnDesktopEnabled();
+         RuntimeEnabledFeatures::SharedArrayBufferOnDesktopEnabled() ||
+         RuntimeEnabledFeatures::
+             SharedArrayBufferUnrestrictedAccessAllowedEnabled();
 #endif
 }
 
@@ -518,7 +520,7 @@ void ExecutionContext::Trace(Visitor* visitor) const {
   visitor->Trace(timers_);
   visitor->Trace(origin_trial_context_);
   visitor->Trace(content_security_policy_);
-  ContextLifecycleNotifier::Trace(visitor);
+  MojoBindingContext::Trace(visitor);
   ConsoleLogger::Trace(visitor);
   Supplementable<ExecutionContext>::Trace(visitor);
 }
@@ -527,7 +529,7 @@ bool ExecutionContext::IsSameAgentCluster(
     const base::UnguessableToken& other_id) const {
   base::UnguessableToken this_id = GetAgentClusterID();
   // If the AgentClusterID is empty then it should never be the same (e.g.
-  // currently for worklets).
+  // NullExecutionContext).
   if (this_id.is_empty() || other_id.is_empty())
     return false;
   return this_id == other_id;

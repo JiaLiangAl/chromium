@@ -9,6 +9,7 @@
 
 #include "base/auto_reset.h"
 #include "base/bind.h"
+#include "base/callback_helpers.h"
 #include "base/macros.h"
 #include "base/trace_event/trace_event.h"
 #include "build/build_config.h"
@@ -115,8 +116,9 @@ class DesktopNativeWidgetTopLevelHandler : public aura::WindowObserver {
     init_params.bounds = bounds;
     init_params.ownership = Widget::InitParams::NATIVE_WIDGET_OWNS_WIDGET;
     init_params.layer_type = ui::LAYER_NOT_DRAWN;
-    init_params.activatable = full_screen ? Widget::InitParams::ACTIVATABLE_YES
-                                          : Widget::InitParams::ACTIVATABLE_NO;
+    init_params.activatable = full_screen
+                                  ? Widget::InitParams::Activatable::kYes
+                                  : Widget::InitParams::Activatable::kNo;
     init_params.z_order = root_z_order;
 
     // This widget instance will get deleted when the window is
@@ -1256,6 +1258,13 @@ ui::mojom::DragOperation DesktopNativeWidgetAura::OnPerformDrop(
     Activate();
   return drop_helper_->OnDrop(event.data(), event.location(),
                               last_drop_operation_);
+}
+
+aura::client::DragDropDelegate::DropCallback
+DesktopNativeWidgetAura::GetDropCallback(const ui::DropTargetEvent& event) {
+  // TODO(crbug.com/1197505): Return drop callback.
+  NOTREACHED();
+  return base::NullCallback();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

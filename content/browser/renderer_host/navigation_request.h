@@ -376,8 +376,20 @@ class CONTENT_EXPORT NavigationRequest
     common_params_->navigation_start = time;
   }
 
-  void set_is_cross_browsing_instance(bool is_cross_browsing_instance) {
-    commit_params_->is_cross_browsing_instance = is_cross_browsing_instance;
+  void set_is_cross_site_cross_browsing_context_group(
+      bool is_cross_site_cross_browsing_context_group) {
+    commit_params_->is_cross_site_cross_browsing_context_group =
+        is_cross_site_cross_browsing_context_group;
+  }
+
+  void set_app_history_back_entries(
+      std::vector<mojom::AppHistoryEntryPtr> entries) {
+    commit_params_->app_history_back_entries = std::move(entries);
+  }
+
+  void set_app_history_forward_entries(
+      std::vector<mojom::AppHistoryEntryPtr> entries) {
+    commit_params_->app_history_forward_entries = std::move(entries);
   }
 
   NavigationURLLoader* loader_for_testing() const { return loader_.get(); }
@@ -576,6 +588,13 @@ class CONTENT_EXPORT NavigationRequest
 
   // Whether this navigation navigates a subframe of an MHTML document.
   bool IsForMhtmlSubframe() const;
+
+  // Whether the navigation has a non-OK net error code.
+  // Note that this is different from IsErrorPage(), which only returns true if
+  // the navigation has finished committing an error page. The net error code
+  // can be non-OK before commit and also in cases that didn't result in the
+  // navigation being committed (e.g. canceled navigations).
+  virtual bool DidEncounterError() const;
 
   std::unique_ptr<AppCacheNavigationHandle> TakeAppCacheHandle();
 
@@ -1612,7 +1631,7 @@ class CONTENT_EXPORT NavigationRequest
 
   std::unique_ptr<CrossOriginEmbedderPolicyReporter> coep_reporter_;
 
-  std::unique_ptr<PeakGpuMemoryTracker> loading_mem_tracker_ = nullptr;
+  std::unique_ptr<PeakGpuMemoryTracker> loading_mem_tracker_;
 
   // Structure tracking the effects of the CrossOriginOpenerPolicy on this
   // navigation.

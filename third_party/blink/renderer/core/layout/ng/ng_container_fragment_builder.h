@@ -117,6 +117,9 @@ class CORE_EXPORT NGContainerFragmentBuilder : public NGFragmentBuilder {
       bool needs_block_offset_adjustment = true,
       const base::Optional<LogicalRect> containing_block_rect = base::nullopt);
 
+  void AddOutOfFlowChildCandidate(
+      const NGLogicalOutOfFlowPositionedNode& candidate);
+
   // This should only be used for inline-level OOF-positioned nodes.
   // |inline_container_direction| is the current text direction for determining
   // the correct static-position.
@@ -147,8 +150,17 @@ class CORE_EXPORT NGContainerFragmentBuilder : public NGFragmentBuilder {
   void SwapMulticolsWithPendingOOFs(
       MulticolCollection* multicols_with_pending_oofs);
 
+  // Transfer the candidates from |oof_positioned_candidates_| to
+  // |destination_builder|.
+  void TransferOutOfFlowCandidates(
+      NGContainerFragmentBuilder* destination_builder);
+
   bool HasOutOfFlowPositionedCandidates() const {
     return !oof_positioned_candidates_.IsEmpty();
+  }
+
+  bool HasOutOfFlowPositionedDescendants() const {
+    return !oof_positioned_descendants_.IsEmpty();
   }
 
   bool HasOutOfFlowFragmentainerDescendants() const {
@@ -181,8 +193,8 @@ class CORE_EXPORT NGContainerFragmentBuilder : public NGFragmentBuilder {
   void PropagateOOFPositionedInfo(
       const NGPhysicalFragment& fragment,
       LogicalOffset offset,
-      LayoutUnit fragmentainer_consumed_block_size,
       const LayoutInline* inline_container = nullptr,
+      LayoutUnit containing_block_adjustment = LayoutUnit(),
       const NGLogicalContainingBlock* fixedpos_containing_block = nullptr,
       LogicalOffset additional_fixedpos_offset = LogicalOffset());
 
@@ -228,8 +240,8 @@ class CORE_EXPORT NGContainerFragmentBuilder : public NGFragmentBuilder {
     block_end_annotation_space_ = space;
   }
 
-  void SetHasDescendantThatDependsOnPercentageBlockSize() {
-    has_descendant_that_depends_on_percentage_block_size_ = true;
+  void SetHasDescendantThatDependsOnPercentageBlockSize(bool b = true) {
+    has_descendant_that_depends_on_percentage_block_size_ = b;
   }
 
   const NGConstraintSpace* ConstraintSpace() const { return space_; }
@@ -253,10 +265,11 @@ class CORE_EXPORT NGContainerFragmentBuilder : public NGFragmentBuilder {
     layout_object_ = node.GetLayoutBox();
   }
 
-  void PropagateChildData(const NGPhysicalFragment& child,
-                          const LogicalOffset& child_offset,
-                          const LayoutInline* inline_container = nullptr,
-                          bool propagate_oof_descendants = true);
+  void PropagateChildData(
+      const NGPhysicalFragment& child,
+      const LogicalOffset& child_offset,
+      const LayoutInline* inline_container = nullptr,
+      base::Optional<LayoutUnit> adjustment_for_oof_propagation = LayoutUnit());
 
   void AddChildInternal(const NGPhysicalFragment*, const LogicalOffset&);
 
@@ -291,10 +304,6 @@ class CORE_EXPORT NGContainerFragmentBuilder : public NGFragmentBuilder {
   LayoutUnit annotation_overflow_;
   // See NGLayoutResult::BlockEndAnotationSpace().
   LayoutUnit block_end_annotation_space_;
-
-  // The block size consumed by all preceding fragmentainers. Used to position
-  // OOF nodes.
-  LayoutUnit fragmentainer_consumed_block_size_;
 
   // The number of line boxes added to the builder. Only updated if we're
   // performing block fragmentation.

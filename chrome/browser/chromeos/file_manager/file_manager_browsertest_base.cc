@@ -1576,7 +1576,8 @@ void FileManagerBrowserTestBase::DevToolsAgentHostCreated(
   CHECK(devtools_agent_.find(host) == devtools_agent_.end());
 
   if (ShouldInspect(host)) {
-    devtools_agent_[host].reset(new DevToolsListener(host, process_id_));
+    devtools_agent_[host] =
+        std::make_unique<DevToolsListener>(host, process_id_);
   }
 }
 
@@ -1679,12 +1680,6 @@ void FileManagerBrowserTestBase::SetUpCommandLine(
 
   if (options.arc) {
     arc::SetArcAvailableCommandLineForTesting(command_line);
-  }
-
-  if (options.unified_media_view) {
-    enabled_features.push_back(chromeos::features::kUnifiedMediaView);
-  } else {
-    disabled_features.push_back(chromeos::features::kUnifiedMediaView);
   }
 
   if (options.smbfs) {

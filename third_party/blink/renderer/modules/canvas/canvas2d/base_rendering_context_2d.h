@@ -376,14 +376,7 @@ class MODULES_EXPORT BaseRenderingContext2D : public GarbageCollectedMixin,
  protected:
   BaseRenderingContext2D();
 
-  // API entry points that need access to ModifiableState() and use the
-  // [NoAllocDirectCall] IDL attribute, must call FallbackForUnrealizedSaves
-  // before calling ModifiableState(), and return immediately if
-  // FallbackForUnrealizedSaves returns true.
-  inline bool NoAllocFallbackForUnrealizedSaves();
-
-  CanvasRenderingContext2DState& ModifiableState();
-  const CanvasRenderingContext2DState& GetState() const {
+  ALWAYS_INLINE CanvasRenderingContext2DState& GetState() const {
     return *state_stack_.back();
   }
 
@@ -474,8 +467,6 @@ class MODULES_EXPORT BaseRenderingContext2D : public GarbageCollectedMixin,
   IdentifiabilityStudyHelper identifiability_study_helper_;
 
  private:
-  void RealizeSaves();
-
   bool ShouldDrawImageAntialiased(const FloatRect& dest_rect) const;
 
   // When the canvas is stroked or filled with a pattern, which is assumed to
@@ -605,8 +596,8 @@ void BaseRenderingContext2D::CompositedDraw(
          canvas_filter ||
          (GetState().ShouldDrawShadows() &&
           ShouldUseDropShadowPaintFilter(paint_type, image_type)));
-  SkMatrix ctm = c->getTotalMatrix();
-  c->setMatrix(SkMatrix::I());
+  SkM44 ctm = c->getLocalToDevice();
+  c->setMatrix(SkM44());
   PaintFlags composite_flags;
   composite_flags.setBlendMode(GetState().GlobalComposite());
   if (GetState().ShouldDrawShadows()) {
@@ -672,14 +663,6 @@ void BaseRenderingContext2D::AdjustRectForCanvas(T& x,
     height = -height;
     y -= height;
   }
-}
-
-inline bool BaseRenderingContext2D::NoAllocFallbackForUnrealizedSaves() {
-  if (LIKELY(!GetState().HasUnrealizedSaves()))
-    return false;
-  if (LIKELY(!GetState().HasRealizedFont()))
-    return false;
-  return NoAllocFallbackForAllocation();
 }
 
 }  // namespace blink

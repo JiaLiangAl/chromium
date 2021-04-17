@@ -77,7 +77,7 @@ void RecursivelyGenerateFrameEntries(
       nullptr, GURL(state.url_string.value_or(std::u16string())),
       // TODO(nasko): Supply valid origin once the value is persisted across
       // session restore.
-      nullptr /* origin */,
+      base::nullopt /* origin */,
       Referrer(GURL(state.referrer.value_or(std::u16string())),
                state.referrer_policy),
       state.initiator_origin, std::vector<GURL>(),
@@ -333,7 +333,7 @@ NavigationEntryImpl::NavigationEntryImpl(
               std::move(instance),
               nullptr,
               url,
-              nullptr /* origin */,
+              base::nullopt /* origin */,
               referrer,
               initiator_origin,
               std::vector<GURL>(),
@@ -804,8 +804,12 @@ NavigationEntryImpl::ConstructCommitNavigationParams(
           false /* origin_agent_cluster */,
           std::vector<
               network::mojom::WebClientHintsType>() /* enabled_client_hints */,
-          false /* is_cross_browsing_instance */,
-          nullptr /* old_page_info */, -1 /* http_response_code */);
+          false /* is_cross_browsing_instance */, nullptr /* old_page_info */,
+          -1 /* http_response_code */,
+          std::vector<
+              mojom::AppHistoryEntryPtr>() /* app_history_back_entries */,
+          std::vector<
+              mojom::AppHistoryEntryPtr>() /* app_history_forward_entries */);
 #if defined(OS_ANDROID)
   if (NavigationControllerImpl::ValidateDataURLAsString(GetDataURLAsString())) {
     commit_params->data_url_as_string = GetDataURLAsString()->data();
@@ -928,9 +932,8 @@ void NavigationEntryImpl::AddOrUpdateFrameEntry(
   // or unique name.
   auto frame_entry = base::MakeRefCounted<FrameNavigationEntry>(
       unique_name, item_sequence_number, document_sequence_number,
-      site_instance, std::move(source_site_instance), url,
-      base::OptionalOrNullptr(origin), referrer, initiator_origin,
-      redirect_chain, page_state, method, post_id,
+      site_instance, std::move(source_site_instance), url, origin, referrer,
+      initiator_origin, redirect_chain, page_state, method, post_id,
       std::move(blob_url_loader_factory), std::move(web_bundle_navigation_info),
       std::move(subresource_web_bundle_navigation_info),
       std::move(policy_container_policies));

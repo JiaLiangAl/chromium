@@ -206,12 +206,6 @@ void CopyConstraintsIntoRtcConfiguration(
     configuration->set_suspend_below_min_bitrate(the_value);
   }
 
-  if (!GetConstraintValueAsBoolean(
-          constraints,
-          &MediaTrackConstraintSetPlatform::enable_rtp_data_channels,
-          &configuration->enable_rtp_data_channel)) {
-    configuration->enable_rtp_data_channel = false;
-  }
   int rate;
   if (GetConstraintValueAsInteger(
           constraints,
@@ -1967,7 +1961,7 @@ RTCPeerConnectionHandler::RemoveTrack(blink::RTCRtpSenderPlatform* web_sender) {
   if (configuration_.sdp_semantics == webrtc::SdpSemantics::kPlanB) {
     if (RemoveTrackPlanB(web_sender)) {
       // In Plan B, null indicates success.
-      std::unique_ptr<RTCRtpTransceiverPlatform> platform_transceiver = nullptr;
+      std::unique_ptr<RTCRtpTransceiverPlatform> platform_transceiver;
       return std::move(platform_transceiver);
     }
     // TODO(hbos): Surface RTCError from third_party/webrtc when

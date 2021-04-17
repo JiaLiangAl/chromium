@@ -150,10 +150,10 @@ const base::Feature kCanvas2DImageChromium {
 #endif
 };
 
-// Clear the frame name for the top-level cross-browsing-context-group
-// navigation.
-const base::Feature kClearCrossBrowsingContextGroupMainFrameName{
-    "ClearCrossBrowsingContextGroupMainFrameName",
+// Clear the window.name property for the top-level cross-site navigations that
+// swap BrowsingContextGroups(BrowsingInstances).
+const base::Feature kClearCrossSiteCrossBrowsingContextGroupWindowName{
+    "ClearCrossSiteCrossBrowsingContextGroupWindowName",
     base::FEATURE_DISABLED_BY_DEFAULT};
 
 const base::Feature kCapabilityDelegationPaymentRequest{
@@ -300,12 +300,6 @@ const base::Feature kNetworkQualityEstimatorWebHoldback{
 // quotes and escaped backslashed should be added to the Sec-CH-UA header
 // (activated by kUserAgentClientHint)
 const base::Feature kGreaseUACH{"GreaseUACH", base::FEATURE_ENABLED_BY_DEFAULT};
-
-// Whether the handwriting recognition feature is enabled. This feature is also
-// controlled by the HandwritingRecognition web platform feature. Both must be
-// enabled for the feature to work.
-const base::Feature kHandwritingRecognitionEnabled{
-    "HandwritingRecognitionEnabled", base::FEATURE_DISABLED_BY_DEFAULT};
 
 // If a page does a client side redirect or adds to the history without a user
 // gesture, then skip it on back/forward UI.

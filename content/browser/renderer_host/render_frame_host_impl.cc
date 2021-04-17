@@ -1760,7 +1760,7 @@ void RenderFrameHostImpl::ExecuteMediaPlayerActionAtLocation(
 }
 
 bool RenderFrameHostImpl::CreateNetworkServiceDefaultFactory(
-    mojo::PendingReceiver<network::mojom::URLLoaderFactory>&&
+    mojo::PendingReceiver<network::mojom::URLLoaderFactory>
         default_factory_receiver) {
   // By providing null |navigation_request| we will always use the last
   // committed Origin and ClientSecurityState (using GetPageUkmSourceId()
@@ -1777,8 +1777,52 @@ bool RenderFrameHostImpl::CreateNetworkServiceDefaultFactory(
       std::move(default_factory_receiver));
 }
 
+std::unique_ptr<blink::PendingURLLoaderFactoryBundle>
+RenderFrameHostImpl::CreateSubresourceLoaderFactoriesForInitialEmptyDocument() {
+  // This method should only be called (by RenderViewHostImpl::CreateRenderView)
+  // when creating a new local main frame in a Renderer process.
+  DCHECK(!GetParent());
+
+  // Expecting the frame to be at the initial empty document.
+  // Not DCHECK-ing `last_committed_origin_`, because it is not reset by
+  // RenderFrameHostImpl::RenderProcessExited for crashed frames.
+  DCHECK_EQ(GURL(), last_committed_url_);
+
+  auto subresource_loader_factories =
+      std::make_unique<blink::PendingURLLoaderFactoryBundle>();
+  switch (lifecycle_state()) {
+    case RenderFrameHostImpl::LifecycleStateImpl::kInBackForwardCache:
+    case RenderFrameHostImpl::LifecycleStateImpl::kPendingCommit:
+    case RenderFrameHostImpl::LifecycleStateImpl::kReadyToBeDeleted:
+    case RenderFrameHostImpl::LifecycleStateImpl::kRunningUnloadHandlers:
+      // A newly-created frame shouldn't be in any of the states above.
+      NOTREACHED();
+      break;
+    case RenderFrameHostImpl::LifecycleStateImpl::kSpeculative:
+      // No subresource requests should be initiated in the speculative frame.
+      // Serving an empty bundle of `subresource_loader_factories` will
+      // desirably lead to a crash in URLLoaderFactoryBundle::GetFactory (see
+      // also the DCHECK there) if the speculative frame attempts to start a
+      // subresource load.
+      break;
+    case RenderFrameHostImpl::LifecycleStateImpl::kActive:
+    case RenderFrameHostImpl::LifecycleStateImpl::kPrerendering:
+      CreateNetworkServiceDefaultFactory(
+          subresource_loader_factories->pending_default_factory()
+              .InitWithNewPipeAndPassReceiver());
+
+      // The caller will send the returned factory to the renderer process.
+      // Therefore, after a NetworkService crash we need to push to the renderer
+      // an updated factory.
+      recreate_default_url_loader_factory_after_network_service_crash_ = true;
+      break;
+  }
+
+  return subresource_loader_factories;
+}
+
 void RenderFrameHostImpl::MarkIsolatedWorldsAsRequiringSeparateURLLoaderFactory(
-    base::flat_set<url::Origin> isolated_world_origins,
+    const base::flat_set<url::Origin>& isolated_world_origins,
     bool push_to_renderer_now) {
   size_t old_size =
       isolated_worlds_requiring_separate_url_loader_factory_.size();
@@ -1794,11 +1838,11 @@ void RenderFrameHostImpl::MarkIsolatedWorldsAsRequiringSeparateURLLoaderFactory(
   //    scripts declared in the manifest - the difference is that the latter
   //    happen at a commit and the factories can just be send in the commit
   //    IPC).
-  // 2) an insertion actually took place / the factories have been modified
-  // 3) a commit has taken place before (i.e. the frame has received a factory
-  //    bundle before).
-  if (push_to_renderer_now && insertion_took_place &&
-      has_committed_any_navigation_) {
+  // 2) an insertion actually took place / the factories have been modified.
+  //
+  // See also the doc comment of `PendingURLLoaderFactoryBundle::OriginMap`
+  // (the type of `pending_isolated_world_factories` that are set below).
+  if (push_to_renderer_now && insertion_took_place) {
     std::unique_ptr<blink::PendingURLLoaderFactoryBundle>
         subresource_loader_factories =
             std::make_unique<blink::PendingURLLoaderFactoryBundle>();
@@ -1867,14 +1911,14 @@ void RenderFrameHostImpl::AddMessageToConsole(
 void RenderFrameHostImpl::ExecuteJavaScriptMethod(
     const std::u16string& object_name,
     const std::u16string& method_name,
-    base::Value&& arguments,
+    base::Value arguments,
     JavaScriptResultCallback callback) {
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
   DCHECK(arguments.is_list());
   CHECK(CanExecuteJavaScript());
 
   const bool wants_result = !callback.is_null();
-  GetMojomFrameInRenderer()->JavaScriptMethodExecuteRequest(
+  GetAssociatedLocalFrame()->JavaScriptMethodExecuteRequest(
       object_name, method_name, std::move(arguments), wants_result,
       std::move(callback));
 }
@@ -2434,12 +2478,11 @@ bool RenderFrameHostImpl::CreateRenderFrame(
   bool should_clear_browsing_instance_name =
       navigation_request &&
       (navigation_request->coop_status().require_browsing_instance_swap() ||
-       (navigation_request->commit_params().is_cross_browsing_instance &&
+       (navigation_request->commit_params()
+            .is_cross_site_cross_browsing_context_group &&
         base::FeatureList::IsEnabled(
-            features::kClearCrossBrowsingContextGroupMainFrameName)));
+            features::kClearCrossSiteCrossBrowsingContextGroupWindowName)));
 
-  // TODO(https://crbug.com/1188676): Update the field and flag name for
-  // clearing window.name on cross-site cross-BrowsingInstance navigations.
   if (should_clear_browsing_instance_name) {
     params->replication_state->name = "";
     // The "swaps" only affect main frames, that have an empty unique name.
@@ -2901,7 +2944,7 @@ void RenderFrameHostImpl::DidNavigate(
   // occurred.
   // TODO(creis): Remove this block and always set the URL.
   // See https://crbug.com/588314.
-  if (!params.url_is_unreachable)
+  if (!navigation_request->DidEncounterError())
     last_successful_url_ = params.url;
 
   // Set the last committed HTTP method and POST ID. Note that we're setting
@@ -4007,8 +4050,7 @@ void RenderFrameHostImpl::ReportInspectorIssue(
       this, std::move(info));
 }
 
-void RenderFrameHostImpl::WriteIntoTracedValue(
-    perfetto::TracedValue&& context) {
+void RenderFrameHostImpl::WriteIntoTracedValue(perfetto::TracedValue context) {
   auto dict = std::move(context).WriteDictionary();
   dict.Add("process", GetProcess());
   dict.Add("routing_id", GetRoutingID());
@@ -4172,19 +4214,21 @@ void RenderFrameHostImpl::PrepareForInnerWebContentsAttach(
       std::move(callback));
 }
 
+// UpdateSubresourceLoaderFactories may be called (internally/privately), when
+// RenderFrameHostImpl detects a NetworkService crash after pushing a
+// NetworkService-based factory to the renderer process.  It may also be called
+// when DevTools wants to send to the renderer process a fresh factory bundle
+// (e.g. after injecting DevToolsURLLoaderInterceptor) - the latter scenario may
+// happen even if `this` RenderFrameHostImpl has not pushed any NetworkService
+// factories to the renderer process (DevTools is agnostic to this).
 void RenderFrameHostImpl::UpdateSubresourceLoaderFactories() {
-  // We only send loader factory bundle upon navigation, so
-  // bail out if the frame hasn't committed any yet.
-  if (!has_committed_any_navigation_)
-    return;
-  DCHECK(!IsOutOfProcessNetworkService() ||
-         network_service_disconnect_handler_holder_.is_bound());
-
   NavigationRequest* latest_nav_request_still_committing =
       FindLatestNavigationRequestThatIsStillCommitting();
   mojo::PendingRemote<network::mojom::URLLoaderFactory> default_factory_remote;
   bool bypass_redirect_checks = false;
   if (recreate_default_url_loader_factory_after_network_service_crash_) {
+    DCHECK(!IsOutOfProcessNetworkService() ||
+           network_service_disconnect_handler_holder_.is_bound());
     bypass_redirect_checks = CreateNetworkServiceDefaultFactoryAndObserve(
         CreateURLLoaderFactoryParamsForMainWorld(
             latest_nav_request_still_committing,
@@ -4993,8 +5037,8 @@ void RenderFrameHostImpl::TextSelectionChanged(const std::u16string& text,
   GetRenderWidgetHost()->SelectionChanged(text, offset, range);
 }
 
-void RenderFrameHostImpl::DidReceiveFirstUserActivation() {
-  delegate_->DidReceiveFirstUserActivation(this);
+void RenderFrameHostImpl::DidReceiveUserActivation() {
+  delegate_->DidReceiveUserActivation(this);
 }
 
 void RenderFrameHostImpl::MaybeIsolateForUserActivation() {
@@ -7053,7 +7097,7 @@ void RenderFrameHostImpl::FailedNavigation(
   dom_content_loaded_ = false;
   has_committed_any_navigation_ = true;
   DCHECK(navigation_request && navigation_request->IsNavigationStarted() &&
-         navigation_request->GetNetErrorCode() != net::OK);
+         navigation_request->DidEncounterError());
 }
 
 void RenderFrameHostImpl::HandleRendererDebugURL(const GURL& url) {
@@ -7703,7 +7747,7 @@ void RenderFrameHostImpl::
     // TODO(lukasza): Consider pushing the ok-vs-error differentiation into
     // NavigationRequest methods (e.g. into |isolation_info_for_subresources|
     // and/or |coep_reporter| methods).
-    if (navigation_request->GetNetErrorCode() == net::OK) {
+    if (!navigation_request->DidEncounterError()) {
       *out_isolation_info =
           navigation_request->isolation_info_for_subresources();
       coep_reporter = navigation_request->coep_reporter();
@@ -8098,7 +8142,7 @@ void RenderFrameHostImpl::CancelPrerendering(
 void RenderFrameHostImpl::CancelPrerenderingByMojoBinderPolicy(
     const std::string& interface_name) {
   RecordPrerenderCancelledInterface(interface_name);
-  CancelPrerendering(PrerenderHost::FinalStatus::kDisallowedMojoInterface);
+  CancelPrerendering(PrerenderHost::FinalStatus::kMojoBinderPolicy);
 }
 
 void RenderFrameHostImpl::ActivateForPrerendering() {
@@ -8754,14 +8798,14 @@ mojom::Frame* RenderFrameHostImpl::GetMojomFrameInRenderer() {
 
 bool RenderFrameHostImpl::ShouldBypassSecurityChecksForErrorPage(
     NavigationRequest* navigation_request,
-    bool* should_commit_unreachable_url) {
-  if (should_commit_unreachable_url)
-    *should_commit_unreachable_url = false;
+    bool* should_commit_error_page) {
+  if (should_commit_error_page)
+    *should_commit_error_page = false;
 
   if (SiteIsolationPolicy::IsErrorPageIsolationEnabled(is_main_frame())) {
     if (GetSiteInstance()->GetSiteInfo().is_error_page()) {
-      if (should_commit_unreachable_url)
-        *should_commit_unreachable_url = true;
+      if (should_commit_error_page)
+        *should_commit_error_page = true;
 
       // With error page isolation, any URL can commit in an error page process.
       return true;
@@ -8856,14 +8900,15 @@ bool RenderFrameHostImpl::ValidateDidCommitParams(
   // Error pages may sometimes commit a URL in the wrong process, which requires
   // an exception for the CanCommitOriginAndUrl() checks.  This is ok as long
   // as the origin is opaque.
-  bool should_commit_unreachable_url = false;
+  bool should_commit_error_page = false;
   bool bypass_checks_for_error_page = ShouldBypassSecurityChecksForErrorPage(
-      navigation_request, &should_commit_unreachable_url);
+      navigation_request, &should_commit_error_page);
 
   // Commits in the error page process must only be failures, otherwise
   // successful navigations could commit documents from origins different
   // than the chrome-error://chromewebdata/ one and violate expectations.
-  if (should_commit_unreachable_url && !params->url_is_unreachable) {
+  if (should_commit_error_page &&
+      (navigation_request && !navigation_request->DidEncounterError())) {
     DEBUG_ALIAS_FOR_ORIGIN(origin_debug_alias, params->origin);
     bad_message::ReceivedBadMessage(
         process, bad_message::RFH_ERROR_PROCESS_NON_ERROR_COMMIT);
@@ -9003,9 +9048,8 @@ bool RenderFrameHostImpl::ValidateDidCommitParams(
   return true;
 }
 
-void RenderFrameHostImpl::UpdateSiteURL(const GURL& url,
-                                        bool url_is_unreachable) {
-  if (url_is_unreachable) {
+void RenderFrameHostImpl::UpdateSiteURL(const GURL& url, bool is_error_page) {
+  if (is_error_page) {
     SetLastCommittedSiteInfo(GURL());
   } else {
     SetLastCommittedSiteInfo(url);
@@ -9131,7 +9175,7 @@ bool RenderFrameHostImpl::DidCommitNavigationInternal(
   navigation_request->set_has_user_gesture(params->gesture ==
                                            NavigationGestureUser);
 
-  UpdateSiteURL(params->url, params->url_is_unreachable);
+  UpdateSiteURL(params->url, navigation_request->DidEncounterError());
 
   // TODO(arthursonzogni): Updating this flag for same-document or bfcache
   // navigation isn't right. This should be moved to DidCommitNewDocument().
@@ -9295,7 +9339,7 @@ void RenderFrameHostImpl::DidCommitNewDocument(
 // struct.
 void RenderFrameHostImpl::TakeNewDocumentPropertiesFromNavigation(
     NavigationRequest* navigation_request) {
-  is_error_page_ = (navigation_request->GetNetErrorCode() != net::OK);
+  is_error_page_ = navigation_request->DidEncounterError();
 
   cross_origin_opener_policy_ =
       navigation_request->coop_status().current_coop();
@@ -10060,7 +10104,7 @@ void RenderFrameHostImpl::
   // if the net error code is not net::OK, or if we're doing a same-document
   // navigation on an error page (only possible for renderer-initiated
   // navigations).
-  const bool is_error_page = (request->GetNetErrorCode() != net::OK ||
+  const bool is_error_page = (request->DidEncounterError() ||
                               (is_error_page_ && request->IsSameDocument()));
 
   const bool browser_url_is_unreachable = CalculateURLIsUnreachable(

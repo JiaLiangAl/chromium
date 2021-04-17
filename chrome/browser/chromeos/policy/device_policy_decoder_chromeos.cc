@@ -139,7 +139,7 @@ std::unique_ptr<base::Value> DecodeIntegerValue(google::protobuf::int64 value) {
     return nullptr;
   }
 
-  return std::unique_ptr<base::Value>(new base::Value(static_cast<int>(value)));
+  return std::make_unique<base::Value>(static_cast<int>(value));
 }
 
 std::unique_ptr<base::Value> DecodeConnectionType(int value) {
@@ -1717,6 +1717,16 @@ void DecodeGenericPolicies(const em::ChromeDeviceSettingsProto& policy,
       policies->Set(key::kPluginVmAllowed, POLICY_LEVEL_MANDATORY,
                     POLICY_SCOPE_MACHINE, POLICY_SOURCE_CLOUD,
                     base::Value(container.plugin_vm_allowed()), nullptr);
+    }
+  }
+
+  if (policy.has_plugin_vm_license_key()) {
+    const em::PluginVmLicenseKeyProto& container(
+        policy.plugin_vm_license_key());
+    if (container.has_plugin_vm_license_key()) {
+      policies->Set(key::kPluginVmLicenseKey, POLICY_LEVEL_MANDATORY,
+                    POLICY_SCOPE_MACHINE, POLICY_SOURCE_CLOUD,
+                    base::Value(container.plugin_vm_license_key()), nullptr);
     }
   }
 

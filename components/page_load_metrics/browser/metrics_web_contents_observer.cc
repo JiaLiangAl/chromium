@@ -82,13 +82,25 @@ bool ShouldProcessNavigation(content::NavigationHandle* navigation_handle) {
 // static
 void MetricsWebContentsObserver::RecordFeatureUsage(
     content::RenderFrameHost* render_frame_host,
-    const mojom::PageLoadFeatures& new_features) {
+    std::vector<blink::mojom::WebFeature> features) {
   content::WebContents* web_contents =
       content::WebContents::FromRenderFrameHost(render_frame_host);
   MetricsWebContentsObserver* observer =
       MetricsWebContentsObserver::FromWebContents(web_contents);
+
   if (observer)
-    observer->OnBrowserFeatureUsage(render_frame_host, new_features);
+    observer->OnBrowserFeatureUsage(
+        render_frame_host, page_load_metrics::mojom::PageLoadFeatures(
+                               std::move(features), /* css_properties= */ {},
+                               /* animated_css_properties= */ {}));
+}
+
+// static
+void MetricsWebContentsObserver::RecordFeatureUsage(
+    content::RenderFrameHost* render_frame_host,
+    blink::mojom::WebFeature feature) {
+  MetricsWebContentsObserver::RecordFeatureUsage(
+      render_frame_host, std::vector<blink::mojom::WebFeature>{feature});
 }
 
 // static
@@ -371,10 +383,10 @@ void MetricsWebContentsObserver::ResourceLoadComplete(
   }
 }
 
-void MetricsWebContentsObserver::FrameReceivedFirstUserActivation(
+void MetricsWebContentsObserver::FrameReceivedUserActivation(
     content::RenderFrameHost* render_frame_host) {
   if (committed_load_)
-    committed_load_->FrameReceivedFirstUserActivation(render_frame_host);
+    committed_load_->FrameReceivedUserActivation(render_frame_host);
 }
 
 void MetricsWebContentsObserver::FrameDisplayStateChanged(

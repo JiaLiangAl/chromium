@@ -5,9 +5,17 @@
 #ifndef CHROME_BROWSER_CHROMEOS_FULL_RESTORE_FULL_RESTORE_ARC_TASK_HANDLER_H_
 #define CHROME_BROWSER_CHROMEOS_FULL_RESTORE_FULL_RESTORE_ARC_TASK_HANDLER_H_
 
+#include <utility>
+
 #include "base/scoped_observation.h"
+#include "chrome/browser/chromeos/full_restore/arc_window_handler.h"
 #include "chrome/browser/ui/app_list/arc/arc_app_list_prefs.h"
+#include "chrome/common/buildflags.h"
 #include "components/keyed_service/core/keyed_service.h"
+
+#if BUILDFLAG(ENABLE_WAYLAND_SERVER)
+class ExoParts;
+#endif
 
 class Profile;
 
@@ -39,10 +47,16 @@ class FullRestoreArcTaskHandler : public KeyedService,
                      const std::string& intent,
                      int32_t session_id) override;
   void OnTaskDestroyed(int task_id) override;
+  void OnConnectionReady() override;
 
  private:
   base::ScopedObservation<ArcAppListPrefs, ArcAppListPrefs::Observer>
       arc_prefs_observer_{this};
+
+#if BUILDFLAG(ENABLE_WAYLAND_SERVER)
+  std::unique_ptr<ArcWindowHandler> window_handler_;
+  std::unique_ptr<ExoParts> exo_parts_;
+#endif
 };
 
 }  // namespace full_restore

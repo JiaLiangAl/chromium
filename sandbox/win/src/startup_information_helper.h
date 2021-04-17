@@ -69,7 +69,7 @@ class StartupInformationHelper {
   int CountAttributes();
 
   // Fields that are not passed into CreateProcessAsUserW().
-  scoped_refptr<AppContainerBase> app_container_ = nullptr;
+  scoped_refptr<AppContainerBase> app_container_;
   bool restrict_child_process_creation_ = false;
   HANDLE stdout_handle_ = INVALID_HANDLE_VALUE;
   HANDLE stderr_handle_ = INVALID_HANDLE_VALUE;
@@ -87,7 +87,7 @@ class StartupInformationHelper {
   DWORD all_applications_package_policy_ = 0;
   std::vector<HANDLE> inherited_handle_list_;
   std::vector<HANDLE> job_handle_list_;
-  std::unique_ptr<SecurityCapabilities> security_capabilities_ = nullptr;
+  std::unique_ptr<SecurityCapabilities> security_capabilities_;
 };
 }  // namespace sandbox
 

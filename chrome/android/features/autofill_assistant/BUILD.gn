@@ -201,11 +201,13 @@ android_library("java") {
 generate_jni("jni_headers") {
   sources = [
     "java/src/org/chromium/chrome/browser/autofill_assistant/AssistantBottomBarNativeDelegate.java",
+    "java/src/org/chromium/chrome/browser/autofill_assistant/AssistantDependenciesImpl.java",
     "java/src/org/chromium/chrome/browser/autofill_assistant/AssistantDialogButton.java",
     "java/src/org/chromium/chrome/browser/autofill_assistant/AssistantInfoPopup.java",
     "java/src/org/chromium/chrome/browser/autofill_assistant/AssistantModel.java",
     "java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantClient.java",
     "java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantDirectActionImpl.java",
+    "java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantServiceInjector.java",
     "java/src/org/chromium/chrome/browser/autofill_assistant/AutofillAssistantUiController.java",
     "java/src/org/chromium/chrome/browser/autofill_assistant/carousel/AssistantChip.java",
     "java/src/org/chromium/chrome/browser/autofill_assistant/details/AssistantDetails.java",
@@ -343,6 +345,7 @@ android_library("test_java") {
     "//components/autofill_assistant/browser:proto_java",
     "//components/browser_ui/bottomsheet/android:java",
     "//components/browser_ui/widget/android:java",
+    "//components/external_intents/android:java",
     "//content/public/android:content_java",
     "//content/public/test/android:content_java_test_support",
     "//net/android:net_java_test_support",

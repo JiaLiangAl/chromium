@@ -21,6 +21,7 @@
 #include "base/strings/string_piece.h"
 #include "base/strings/string_tokenizer.h"
 #include "base/task/thread_pool.h"
+#include "base/threading/sequenced_task_runner_handle.h"
 #include "build/branding_buildflags.h"
 #include "build/build_config.h"
 #include "components/safe_browsing/core/common/thread_utils.h"
@@ -125,6 +126,7 @@ ListInfos GetListInfos() {
 std::vector<CommandLineSwitchAndThreatType> GetSwitchAndThreatTypes() {
   static const std::vector<CommandLineSwitchAndThreatType>
       command_line_switch_and_threat_type = {
+          {"mark_as_allowlisted_for_phish_guard", CSD_WHITELIST},
           {"mark_as_allowlisted_for_real_time", HIGH_CONFIDENCE_ALLOWLIST},
           {"mark_as_phishing", SOCIAL_ENGINEERING},
           {"mark_as_malware", MALWARE_THREAT},
@@ -224,6 +226,61 @@ void RecordTimeSinceLastUpdateHistograms(const base::Time& last_response_time) {
       time_since_update);
 }
 
+// Renames the file at |old_path| to |new_path|. Executes on a task runner.
+void RenameStoreFile(const base::FilePath& old_path,
+                     const base::FilePath& new_path) {
+  base::File::Error error = base::File::FILE_OK;
+  base::ReplaceFile(old_path, new_path, &error);
+
+  base::UmaHistogramExactLinear(
+      "SafeBrowsing.V4Store.RenameStatus" + GetUmaSuffixForStore(new_path),
+      -error, -base::File::FILE_ERROR_MAX);
+}
+
+// Rename *.store files on disk per |kStoreFilesToRename|. Executes on a
+// task runner.
+void RenameOldStoreFiles(const ListInfos& list_infos,
+                         const base::FilePath base_path) {
+  for (auto const& pair : kStoreFilesToRename) {
+    const base::StringPiece& old_name = pair.first;
+    const base::StringPiece& new_name = pair.second;
+
+    const base::FilePath old_store_path = base_path.AppendASCII(old_name);
+    // Is the old filename also being used for a valid V4Store?
+    auto it = std::find_if(
+        std::begin(list_infos), std::end(list_infos),
+        [&old_name](ListInfo const& li) { return li.filename() == old_name; });
+    bool old_filename_in_use = list_infos.end() != it;
+    base::UmaHistogramBoolean("SafeBrowsing.V4Store.OldFileNameInUse" +
+                                  GetUmaSuffixForStore(old_store_path),
+                              old_filename_in_use);
+    if (old_filename_in_use) {
+      NOTREACHED() << "Trying to rename a store file that's in use: "
+                   << old_name;
+      continue;
+    }
+
+    bool old_path_exists = base::PathExists(old_store_path);
+    base::UmaHistogramBoolean("SafeBrowsing.V4Store.OldFileNameExists" +
+                                  GetUmaSuffixForStore(old_store_path),
+                              old_path_exists);
+    if (!old_path_exists) {
+      continue;
+    }
+
+    const base::FilePath new_store_path = base_path.AppendASCII(new_name);
+    bool new_path_exists = base::PathExists(new_store_path);
+    base::UmaHistogramBoolean("SafeBrowsing.V4Store.NewFileNameExists" +
+                                  GetUmaSuffixForStore(new_store_path),
+                              new_path_exists);
+    if (new_path_exists) {
+      continue;
+    }
+
+    RenameStoreFile(old_store_path, new_store_path);
+  }
+}
+
 }  // namespace
 
 V4LocalDatabaseManager::PendingCheck::PendingCheck(
@@ -299,9 +356,10 @@ V4LocalDatabaseManager::V4LocalDatabaseManager(
                        : base::ThreadPool::CreateSequencedTaskRunner(
                              {base::MayBlock(),
                               base::TaskShutdownBehavior::SKIP_ON_SHUTDOWN})) {
+  DCHECK(CurrentlyOnThread(ThreadID::UI));
+
   task_runner_->PostTask(
-      FROM_HERE, base::BindOnce(&V4LocalDatabaseManager::RenameOldStoreFiles,
-                                weak_factory_.GetWeakPtr()));
+      FROM_HERE, base::BindOnce(&RenameOldStoreFiles, list_infos_, base_path_));
 
   DCHECK(!base_path_.empty());
   DCHECK(!list_infos_.empty());
@@ -484,7 +542,12 @@ AsyncMatch V4LocalDatabaseManager::CheckCsdAllowlistUrl(const GURL& url,
   DCHECK(CurrentlyOnThread(ThreadID::IO));
 
   StoresToCheck stores_to_check({GetUrlCsdAllowlistId()});
-  if (!AreAllStoresAvailableNow(stores_to_check) || !CanCheckUrl(url)) {
+  // If any artificial matches are present, consider the allowlist as ready.
+  bool is_artificial_prefix_empty =
+      artificially_marked_store_and_hash_prefixes_.empty();
+  if ((!AreAllStoresAvailableNow(stores_to_check) &&
+       is_artificial_prefix_empty) ||
+      !CanCheckUrl(url)) {
     // Fail open: Allowlist everything. Otherwise we may run the
     // CSD phishing/malware detector on popular domains and generate
     // undue load on the client and server, or send Password Reputation
@@ -932,58 +995,6 @@ void V4LocalDatabaseManager::ProcessQueuedChecks() {
       PerformFullHashCheck(std::move(it));
     }
   }
-}
-
-void V4LocalDatabaseManager::RenameOldStoreFiles() {
-  for (auto const& pair : kStoreFilesToRename) {
-    const base::StringPiece& old_name = pair.first;
-    const base::StringPiece& new_name = pair.second;
-
-    const base::FilePath old_store_path = base_path_.AppendASCII(old_name);
-    // Is the old filename also being used for a valid V4Store?
-    auto it = std::find_if(
-        std::begin(list_infos_), std::end(list_infos_),
-        [&old_name](ListInfo const& li) { return li.filename() == old_name; });
-    bool old_filename_in_use = list_infos_.end() != it;
-    base::UmaHistogramBoolean("SafeBrowsing.V4Store.OldFileNameInUse" +
-                                  GetUmaSuffixForStore(old_store_path),
-                              old_filename_in_use);
-    if (old_filename_in_use) {
-      NOTREACHED() << "Trying to rename a store file that's in use: "
-                   << old_name;
-      continue;
-    }
-
-    bool old_path_exists = base::PathExists(old_store_path);
-    base::UmaHistogramBoolean("SafeBrowsing.V4Store.OldFileNameExists" +
-                                  GetUmaSuffixForStore(old_store_path),
-                              old_path_exists);
-    if (!old_path_exists) {
-      continue;
-    }
-
-    const base::FilePath new_store_path = base_path_.AppendASCII(new_name);
-    bool new_path_exists = base::PathExists(new_store_path);
-    base::UmaHistogramBoolean("SafeBrowsing.V4Store.NewFileNameExists" +
-                                  GetUmaSuffixForStore(new_store_path),
-                              new_path_exists);
-    if (new_path_exists) {
-      continue;
-    }
-
-    RenameStoreFile(old_store_path, new_store_path);
-  }
-}
-
-// static
-void V4LocalDatabaseManager::RenameStoreFile(const base::FilePath& old_path,
-                                             const base::FilePath& new_path) {
-  base::File::Error error = base::File::FILE_OK;
-  base::ReplaceFile(old_path, new_path, &error);
-
-  base::UmaHistogramExactLinear(
-      "SafeBrowsing.V4Store.RenameStatus" + GetUmaSuffixForStore(new_path),
-      -error, -base::File::FILE_ERROR_MAX);
 }
 
 void V4LocalDatabaseManager::RespondSafeToQueuedChecks() {

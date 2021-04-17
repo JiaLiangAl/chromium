@@ -1372,6 +1372,21 @@
             ]
         }
     ],
+    "ChimeAndroidSDK": [
+        {
+            "platforms": [
+                "android"
+            ],
+            "experiments": [
+                {
+                    "name": "ChimeAndroidSDK",
+                    "enable_features": [
+                        "UseChimeAndroidSdk"
+                    ]
+                }
+            ]
+        }
+    ],
     "ChromeCleanupDistribution": [
         {
             "platforms": [
@@ -4206,6 +4221,8 @@
     "MigrateDefaultChromeAppToWebAppsGSuite": [
         {
             "platforms": [
+                "chromeos",
+                "chromeos_lacros",
                 "linux",
                 "mac",
                 "windows"
@@ -4223,6 +4240,8 @@
     "MigrateDefaultChromeAppToWebAppsNonGSuite": [
         {
             "platforms": [
+                "chromeos",
+                "chromeos_lacros",
                 "linux",
                 "mac",
                 "windows"
@@ -6387,7 +6406,10 @@
                 {
                     "name": "Enabled",
                     "params": {
-                        "enable_subresource_server_redirect": "true"
+                        "enable_login_robots_based_compression": "true",
+                        "enable_public_image_hints_based_compression": "false",
+                        "enable_subresource_server_redirect": "true",
+                        "robots_rules_receive_timeout": "2000"
                     },
                     "enable_features": [
                         "SubresourceRedirect"
@@ -6512,6 +6534,28 @@
                     "enable_features": [
                         "SynchronousPageFlipTesting",
                         "UseRealBuffersForPageFlipTest"
+                    ]
+                }
+            ]
+        }
+    ],
+    "SyncingCompromisedCredentials": [
+        {
+            "platforms": [
+                "android",
+                "android_webview",
+                "chromeos",
+                "chromeos_lacros",
+                "ios",
+                "linux",
+                "mac",
+                "windows"
+            ],
+            "experiments": [
+                {
+                    "name": "SyncingCompromisedCredentials",
+                    "enable_features": [
+                        "SyncingCompromisedCredentials"
                     ]
                 }
             ]

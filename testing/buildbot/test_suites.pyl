@@ -2803,7 +2803,7 @@
           '--enable-gpu',
           '--test-launcher-bot-mode',
           '--test-launcher-jobs=1',
-          '--gtest_filter=CastStreamingApiTestWithPixelOutput.EndToEnd*:TabCaptureApiPixelTest.EndToEnd*',
+          '--gtest_filter=TabCaptureApiPixelTest.EndToEnd*',
         ],
         'linux_args': [ '--no-xvfb' ],
         'test': 'browser_tests',
@@ -4143,6 +4143,10 @@
 
     'lacros_all_tast_tests_amd64_generic': {
       'lacros_all_tast_tests_amd64_generic': {
+        'args': [
+          '--board=amd64-generic',
+          '--use-vm',
+        ],
         'swarming': {
           'idempotent': False,  # https://crbug.com/923426#c27
           'dimension_sets': [
@@ -4168,6 +4172,10 @@
 
     'lacros_smoke_tast_tests_amd64_generic': {
       'lacros_smoke_tast_tests_amd64_generic': {
+        'args': [
+          '--board=amd64-generic',
+          '--use-vm',
+        ],
         'swarming': {
           'idempotent': False,  # https://crbug.com/923426#c27
           'dimension_sets': [
@@ -4186,6 +4194,10 @@
 
     'lacros_smoke_tast_tests_eve': {
       'lacros_smoke_tast_tests_eve': {
+        'args': [
+          '--board=eve',
+          '--flash',
+        ],
         'swarming': {
           'idempotent': False,  # https://crbug.com/923426#c27
           'dimension_sets': [
@@ -4320,6 +4332,7 @@
       },
       'lacros_chrome_browsertests': {},
       'lacros_chrome_unittests': {},
+      'sync_integration_tests': {},
       'ui_base_unittests': {},
       'unit_tests': {},
     },
@@ -5174,6 +5187,17 @@
         'swarming': {
           'shards': 2,
         }
+      },
+    },
+
+    'weblayer_instrumentation_version_tests_with_chrome': {
+      'weblayer_instrumentation_test_versions_with_chrome_apk': {
+        'swarming': {
+          'shards': 2,
+        },
+        'args': [
+          '--additional-apk=apks/ChromePublic.apk'
+        ],
       },
     },
 
@@ -6839,10 +6863,15 @@
     'android_weblayer_x86_marshmallow_10_gtests': {
       'weblayer_instrumentation_tests': {
         'variants': [
-          {'identifier': 'ToT_Tests'}
+          {
+            'identifier': 'ToT_Tests',
+            'args': [
+              '--additional-apk=apks/ChromePublic.apk'
+            ],
+          }
         ]
       },
-      'weblayer_instrumentation_version_tests': {
+      'weblayer_instrumentation_version_tests_with_chrome': {
         'variants': [
           'WEBLAYER_10_AND_M_IMPL_SKEW_TESTS_NTH_MILESTONE',
           'WEBLAYER_10_AND_M_IMPL_SKEW_TESTS_NTH_MINUS_ONE_MILESTONE',
@@ -7183,8 +7212,9 @@
           'CROS_KEFKA_TOT',
           'CROS_KIP_TOT',
           'CROS_OCTOPUS_TOT',
-          'CROS_OCTOPUS_TOT-1',
           'CROS_SNAPPY_TOT',
+          'CROS_OCTOPUS_TOT-1',
+          'CROS_OCTOPUS_TOT-2',
         ]
       },
     },

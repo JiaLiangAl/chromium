@@ -36,7 +36,7 @@ import org.chromium.components.content_settings.ContentSettingsType;
 import org.chromium.components.embedder_support.util.UrlUtilities;
 import org.chromium.components.page_info.PageInfoDiscoverabilityMetrics;
 import org.chromium.components.page_info.PageInfoDiscoverabilityMetrics.DiscoverabilityAction;
-import org.chromium.components.page_info.PageInfoFeatureList;
+import org.chromium.components.page_info.PageInfoFeatures;
 import org.chromium.components.permissions.PermissionDialogController;
 import org.chromium.components.search_engines.TemplateUrlService;
 import org.chromium.components.search_engines.TemplateUrlService.TemplateUrlServiceObserver;
@@ -96,8 +96,6 @@ public class StatusMediator
 
     private float mUrlFocusPercent;
 
-    private Runnable mForceModelViewReconciliationRunnable;
-
     // Factors used to offset the animation of the status icon's alpha adjustment. The full formula
     // used: alpha = (focusAnimationProgress - mTextOffsetThreshold) / (1 - mTextOffsetThreshold)
     // mTextOffsetThreshold will be the % space that the icon takes up during the focus animation.
@@ -108,7 +106,6 @@ public class StatusMediator
 
     public StatusMediator(PropertyModel model, Resources resources, Context context,
             UrlBarEditingTextStateProvider urlBarEditingTextStateProvider, boolean isTablet,
-            Runnable forceModelViewReconciliationRunnable,
             LocationBarDataProvider locationBarDataProvider,
             PermissionDialogController permissionDialogController,
             SearchEngineLogoUtils searchEngineLogoUtils,
@@ -141,7 +138,6 @@ public class StatusMediator
         mTextOffsetAdjustedScale = mTextOffsetThreshold == 1 ? 1 : (1 - mTextOffsetThreshold);
 
         mIsTablet = isTablet;
-        mForceModelViewReconciliationRunnable = forceModelViewReconciliationRunnable;
         mPermissionDialogController = permissionDialogController;
         mPermissionDialogController.addObserver(this);
 
@@ -327,11 +323,6 @@ public class StatusMediator
         mUrlFocusPercent = percent;
         // On tablets, the status icon should always be shown so the following logic doesn't apply.
         assert !mIsTablet : "This logic shouldn't be called on tablets";
-
-        if (!mSearchEngineLogoUtils.shouldShowSearchEngineLogo(
-                    mLocationBarDataProvider.isIncognito())) {
-            return;
-        }
 
         // Note: This uses mUrlFocusPercent rather than mUrlHasFocus because when the user scrolls
         // the NTP we want the status icon to show.
@@ -599,40 +590,15 @@ public class StatusMediator
     public void onIncognitoStateChanged() {
         boolean incognitoBadgeVisible = mLocationBarDataProvider.isIncognito() && !mIsTablet;
         mModel.set(StatusProperties.INCOGNITO_BADGE_VISIBLE, incognitoBadgeVisible);
-        reconcileVisualState();
-    }
-
-    /**
-     * Temporary workaround for the divergent logic for status icon visibility changes for the dse
-     * icon experiment. Should be removed when the dse icon launches (crbug.com/1019488).
-     *
-     * When transitioning to incognito, the first visible view when focused will be assigned to
-     * UrlBar. When the UrlBar is the first visible view when focused, the StatusView's alpha
-     * will be set to 0 in LocationBarPhone#populateFadeAnimations. When transitioning back from
-     * incognito, StatusView's state needs to be reset to match the current state of the status view
-     * {@link org.chromium.chrome.browser.omnibox.LocationBarPhone#updateVisualsForState}.
-     * property model.
-     **/
-    private void reconcileVisualState() {
-        // No reconciliation is needed on tablet because the status icon is always shown.
-        if (mIsTablet) return;
-
-        if (!mShowStatusIconWhenUrlFocused || mLocationBarDataProvider.isIncognito()
-                || !mSearchEngineLogoUtils.shouldShowSearchEngineLogo(
-                        mLocationBarDataProvider.isIncognito())) {
-            return;
-        }
-
-        assert mForceModelViewReconciliationRunnable != null;
-        mForceModelViewReconciliationRunnable.run();
+        mModel.set(StatusProperties.STATUS_ICON_RESOURCE, null);
+        setStatusIconAlpha(1f);
     }
 
     // PermissionDialogController.Observer interface
     @Override
     public void onDialogResult(WindowAndroid window, @ContentSettingsType int[] permissions,
             @ContentSettingValues int result) {
-        if (!PageInfoFeatureList.isEnabled(PageInfoFeatureList.PAGE_INFO_DISCOVERABILITY)
-                || window != mWindowAndroid) {
+        if (!PageInfoFeatures.PAGE_INFO_DISCOVERABILITY.isEnabled() || window != mWindowAndroid) {
             return;
         }
         @ContentSettingsType
@@ -641,10 +607,10 @@ public class StatusMediator
         if (permission == ContentSettingsType.DEFAULT) return;
         mLastPermission = permission;
 
-        Drawable permissionIcon =
-                ContentSettingsResources.getContentSettingsIcon(mContext, mLastPermission, result);
-        PermissionIconResource statusIcon =
-                new PermissionIconResource(permissionIcon, mLocationBarDataProvider.isIncognito());
+        boolean isIncognito = mLocationBarDataProvider.isIncognito();
+        Drawable permissionIcon = ContentSettingsResources.getIconForOmnibox(
+                mContext, mLastPermission, result, isIncognito);
+        PermissionIconResource statusIcon = new PermissionIconResource(permissionIcon, isIncognito);
         statusIcon.setTransitionType(IconTransitionType.ROTATE);
         // Set the timer to switch the icon back afterwards.
         mPermissionTaskHandler.removeCallbacksAndMessages(null);

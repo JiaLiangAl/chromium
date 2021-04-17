@@ -260,6 +260,68 @@
       },
       {
         "args": [
+          "--gs-results-bucket=chromium-result-details",
+          "--recover-devices",
+          "--avd-config=../../tools/android/avd/proto/generic_android30.textpb"
+        ],
+        "merge": {
+          "args": [
+            "--bucket",
+            "chromium-result-details",
+            "--test-name",
+            "android_webview_unittests"
+          ],
+          "script": "//build/android/pylib/results/presentation/test_results_presentation.py"
+        },
+        "resultdb": {
+          "enable": true
+        },
+        "swarming": {
+          "can_use_on_swarming_builders": true,
+          "cipd_packages": [
+            {
+              "cipd_package": "infra/tools/luci/logdog/butler/${platform}",
+              "location": "bin",
+              "revision": "git_revision:ff387eadf445b24c935f1cf7d6ddd279f8a6b04c"
+            }
+          ],
+          "dimension_sets": [
+            {
+              "cpu": "x86-64",
+              "device_os": null,
+              "device_type": null,
+              "machine_type": "n1-standard-4",
+              "os": "Ubuntu-16.04",
+              "pool": "chromium.tests.avd"
+            }
+          ],
+          "named_caches": [
+            {
+              "name": "avd_generic_android30",
+              "path": ".android"
+            },
+            {
+              "name": "system_images_android_30_google_apis_x86",
+              "path": ".emulator_sdk"
+            }
+          ],
+          "output_links": [
+            {
+              "link": [
+                "https://luci-logdog.appspot.com/v/?s",
+                "=android%2Fswarming%2Flogcats%2F",
+                "${TASK_ID}%2F%2B%2Funified_logcats"
+              ],
+              "name": "shard #${SHARD_INDEX} logcats"
+            }
+          ],
+          "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com"
+        },
+        "test": "android_webview_unittests",
+        "test_id_prefix": "ninja://android_webview/test:android_webview_unittests/"
+      },
+      {
+        "args": [
           "angle_unittests",
           "-v",
           "--avd-config=../../tools/android/avd/proto/generic_android30.textpb"
@@ -1447,8 +1509,7 @@
         "args": [
           "--gs-results-bucket=chromium-result-details",
           "--recover-devices",
-          "--avd-config=../../tools/android/avd/proto/generic_android30.textpb",
-          "--gtest_filter=-FontUniqueNameLookupTest.TestMatchPostScriptNameTtc"
+          "--avd-config=../../tools/android/avd/proto/generic_android30.textpb"
         ],
         "merge": {
           "args": [
@@ -4452,6 +4513,7 @@
     "gtest_tests": [
       {
         "args": [
+          "--additional-apk=apks/ChromePublic.apk",
           "--gs-results-bucket=chromium-result-details",
           "--recover-devices",
           "--avd-config=../../tools/android/avd/proto/generic_android29.textpb",
@@ -4516,6 +4578,7 @@
       },
       {
         "args": [
+          "--additional-apk=apks/ChromePublic.apk",
           "--webview-apk-path=apks/SystemWebView.apk",
           "--test-runner-outdir",
           ".",
@@ -4535,11 +4598,11 @@
             "--bucket",
             "chromium-result-details",
             "--test-name",
-            "weblayer_instrumentation_test_versions_apk_Client Library Skew Tests For 89.0.4389.129"
+            "weblayer_instrumentation_test_versions_with_chrome_apk_Client Library Skew Tests For 89.0.4389.129"
           ],
           "script": "//build/android/pylib/results/presentation/test_results_presentation.py"
         },
-        "name": "weblayer_instrumentation_test_versions_apk_Client Library Skew Tests For 89.0.4389.129",
+        "name": "weblayer_instrumentation_test_versions_with_chrome_apk_Client Library Skew Tests For 89.0.4389.129",
         "resultdb": {
           "enable": true
         },
@@ -4590,11 +4653,12 @@
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 2
         },
-        "test": "weblayer_instrumentation_test_versions_apk",
-        "test_id_prefix": "ninja://weblayer/browser/android/javatests:weblayer_instrumentation_test_versions_apk/"
+        "test": "weblayer_instrumentation_test_versions_with_chrome_apk",
+        "test_id_prefix": "ninja://weblayer/browser/android/javatests:weblayer_instrumentation_test_versions_with_chrome_apk/"
       },
       {
         "args": [
+          "--additional-apk=apks/ChromePublic.apk",
           "--webview-apk-path=apks/SystemWebView.apk",
           "--test-runner-outdir",
           ".",
@@ -4614,11 +4678,11 @@
             "--bucket",
             "chromium-result-details",
             "--test-name",
-            "weblayer_instrumentation_test_versions_apk_Client Library Skew Tests For 90.0.4430.76"
+            "weblayer_instrumentation_test_versions_with_chrome_apk_Client Library Skew Tests For 90.0.4430.81"
           ],
           "script": "//build/android/pylib/results/presentation/test_results_presentation.py"
         },
-        "name": "weblayer_instrumentation_test_versions_apk_Client Library Skew Tests For 90.0.4430.76",
+        "name": "weblayer_instrumentation_test_versions_with_chrome_apk_Client Library Skew Tests For 90.0.4430.81",
         "resultdb": {
           "enable": true
         },
@@ -4628,7 +4692,7 @@
             {
               "cipd_package": "chromium/testing/weblayer-x86",
               "location": "weblayer_instrumentation_test_M90",
-              "revision": "version:90.0.4430.76"
+              "revision": "version:90.0.4430.81"
             },
             {
               "cipd_package": "infra/tools/luci/logdog/butler/${platform}",
@@ -4669,11 +4733,12 @@
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 2
         },
-        "test": "weblayer_instrumentation_test_versions_apk",
-        "test_id_prefix": "ninja://weblayer/browser/android/javatests:weblayer_instrumentation_test_versions_apk/"
+        "test": "weblayer_instrumentation_test_versions_with_chrome_apk",
+        "test_id_prefix": "ninja://weblayer/browser/android/javatests:weblayer_instrumentation_test_versions_with_chrome_apk/"
       },
       {
         "args": [
+          "--additional-apk=apks/ChromePublic.apk",
           "--webview-apk-path=apks/SystemWebView.apk",
           "--test-runner-outdir",
           ".",
@@ -4693,11 +4758,11 @@
             "--bucket",
             "chromium-result-details",
             "--test-name",
-            "weblayer_instrumentation_test_versions_apk_Client Library Skew Tests For 91.0.4472.8"
+            "weblayer_instrumentation_test_versions_with_chrome_apk_Client Library Skew Tests For 91.0.4472.12"
           ],
           "script": "//build/android/pylib/results/presentation/test_results_presentation.py"
         },
-        "name": "weblayer_instrumentation_test_versions_apk_Client Library Skew Tests For 91.0.4472.8",
+        "name": "weblayer_instrumentation_test_versions_with_chrome_apk_Client Library Skew Tests For 91.0.4472.12",
         "resultdb": {
           "enable": true
         },
@@ -4707,7 +4772,7 @@
             {
               "cipd_package": "chromium/testing/weblayer-x86",
               "location": "weblayer_instrumentation_test_M91",
-              "revision": "version:91.0.4472.8"
+              "revision": "version:91.0.4472.12"
             },
             {
               "cipd_package": "infra/tools/luci/logdog/butler/${platform}",
@@ -4748,11 +4813,12 @@
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 2
         },
-        "test": "weblayer_instrumentation_test_versions_apk",
-        "test_id_prefix": "ninja://weblayer/browser/android/javatests:weblayer_instrumentation_test_versions_apk/"
+        "test": "weblayer_instrumentation_test_versions_with_chrome_apk",
+        "test_id_prefix": "ninja://weblayer/browser/android/javatests:weblayer_instrumentation_test_versions_with_chrome_apk/"
       },
       {
         "args": [
+          "--additional-apk=apks/ChromePublic.apk",
           "--webview-apk-path=apks/AOSP_SystemWebView.apk",
           "--test-runner-outdir",
           ".",
@@ -4772,11 +4838,11 @@
             "--bucket",
             "chromium-result-details",
             "--test-name",
-            "weblayer_instrumentation_test_versions_apk_Implementation Library Skew Tests For 89.0.4389.129"
+            "weblayer_instrumentation_test_versions_with_chrome_apk_Implementation Library Skew Tests For 89.0.4389.129"
           ],
           "script": "//build/android/pylib/results/presentation/test_results_presentation.py"
         },
-        "name": "weblayer_instrumentation_test_versions_apk_Implementation Library Skew Tests For 89.0.4389.129",
+        "name": "weblayer_instrumentation_test_versions_with_chrome_apk_Implementation Library Skew Tests For 89.0.4389.129",
         "resultdb": {
           "enable": true
         },
@@ -4827,11 +4893,12 @@
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 2
         },
-        "test": "weblayer_instrumentation_test_versions_apk",
-        "test_id_prefix": "ninja://weblayer/browser/android/javatests:weblayer_instrumentation_test_versions_apk/"
+        "test": "weblayer_instrumentation_test_versions_with_chrome_apk",
+        "test_id_prefix": "ninja://weblayer/browser/android/javatests:weblayer_instrumentation_test_versions_with_chrome_apk/"
       },
       {
         "args": [
+          "--additional-apk=apks/ChromePublic.apk",
           "--webview-apk-path=apks/AOSP_SystemWebView.apk",
           "--test-runner-outdir",
           ".",
@@ -4851,11 +4918,11 @@
             "--bucket",
             "chromium-result-details",
             "--test-name",
-            "weblayer_instrumentation_test_versions_apk_Implementation Library Skew Tests For 90.0.4430.76"
+            "weblayer_instrumentation_test_versions_with_chrome_apk_Implementation Library Skew Tests For 90.0.4430.81"
           ],
           "script": "//build/android/pylib/results/presentation/test_results_presentation.py"
         },
-        "name": "weblayer_instrumentation_test_versions_apk_Implementation Library Skew Tests For 90.0.4430.76",
+        "name": "weblayer_instrumentation_test_versions_with_chrome_apk_Implementation Library Skew Tests For 90.0.4430.81",
         "resultdb": {
           "enable": true
         },
@@ -4865,7 +4932,7 @@
             {
               "cipd_package": "chromium/testing/weblayer-x86",
               "location": "weblayer_instrumentation_test_M90",
-              "revision": "version:90.0.4430.76"
+              "revision": "version:90.0.4430.81"
             },
             {
               "cipd_package": "infra/tools/luci/logdog/butler/${platform}",
@@ -4906,11 +4973,12 @@
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 2
         },
-        "test": "weblayer_instrumentation_test_versions_apk",
-        "test_id_prefix": "ninja://weblayer/browser/android/javatests:weblayer_instrumentation_test_versions_apk/"
+        "test": "weblayer_instrumentation_test_versions_with_chrome_apk",
+        "test_id_prefix": "ninja://weblayer/browser/android/javatests:weblayer_instrumentation_test_versions_with_chrome_apk/"
       },
       {
         "args": [
+          "--additional-apk=apks/ChromePublic.apk",
           "--webview-apk-path=apks/AOSP_SystemWebView.apk",
           "--test-runner-outdir",
           ".",
@@ -4930,11 +4998,11 @@
             "--bucket",
             "chromium-result-details",
             "--test-name",
-            "weblayer_instrumentation_test_versions_apk_Implementation Library Skew Tests For 91.0.4472.8"
+            "weblayer_instrumentation_test_versions_with_chrome_apk_Implementation Library Skew Tests For 91.0.4472.12"
           ],
           "script": "//build/android/pylib/results/presentation/test_results_presentation.py"
         },
-        "name": "weblayer_instrumentation_test_versions_apk_Implementation Library Skew Tests For 91.0.4472.8",
+        "name": "weblayer_instrumentation_test_versions_with_chrome_apk_Implementation Library Skew Tests For 91.0.4472.12",
         "resultdb": {
           "enable": true
         },
@@ -4944,7 +5012,7 @@
             {
               "cipd_package": "chromium/testing/weblayer-x86",
               "location": "weblayer_instrumentation_test_M91",
-              "revision": "version:91.0.4472.8"
+              "revision": "version:91.0.4472.12"
             },
             {
               "cipd_package": "infra/tools/luci/logdog/butler/${platform}",
@@ -4985,8 +5053,8 @@
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 2
         },
-        "test": "weblayer_instrumentation_test_versions_apk",
-        "test_id_prefix": "ninja://weblayer/browser/android/javatests:weblayer_instrumentation_test_versions_apk/"
+        "test": "weblayer_instrumentation_test_versions_with_chrome_apk",
+        "test_id_prefix": "ninja://weblayer/browser/android/javatests:weblayer_instrumentation_test_versions_with_chrome_apk/"
       }
     ]
   },
@@ -4994,6 +5062,7 @@
     "gtest_tests": [
       {
         "args": [
+          "--additional-apk=apks/ChromePublic.apk",
           "--gs-results-bucket=chromium-result-details",
           "--recover-devices",
           "--avd-config=../../tools/android/avd/proto/generic_android23.textpb",
@@ -5058,6 +5127,7 @@
       },
       {
         "args": [
+          "--additional-apk=apks/ChromePublic.apk",
           "--webview-apk-path=apks/SystemWebView.apk",
           "--test-runner-outdir",
           ".",
@@ -5077,11 +5147,11 @@
             "--bucket",
             "chromium-result-details",
             "--test-name",
-            "weblayer_instrumentation_test_versions_apk_Client Library Skew Tests For 89.0.4389.129"
+            "weblayer_instrumentation_test_versions_with_chrome_apk_Client Library Skew Tests For 89.0.4389.129"
           ],
           "script": "//build/android/pylib/results/presentation/test_results_presentation.py"
         },
-        "name": "weblayer_instrumentation_test_versions_apk_Client Library Skew Tests For 89.0.4389.129",
+        "name": "weblayer_instrumentation_test_versions_with_chrome_apk_Client Library Skew Tests For 89.0.4389.129",
         "resultdb": {
           "enable": true
         },
@@ -5132,11 +5202,12 @@
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 2
         },
-        "test": "weblayer_instrumentation_test_versions_apk",
-        "test_id_prefix": "ninja://weblayer/browser/android/javatests:weblayer_instrumentation_test_versions_apk/"
+        "test": "weblayer_instrumentation_test_versions_with_chrome_apk",
+        "test_id_prefix": "ninja://weblayer/browser/android/javatests:weblayer_instrumentation_test_versions_with_chrome_apk/"
       },
       {
         "args": [
+          "--additional-apk=apks/ChromePublic.apk",
           "--webview-apk-path=apks/SystemWebView.apk",
           "--test-runner-outdir",
           ".",
@@ -5156,11 +5227,11 @@
             "--bucket",
             "chromium-result-details",
             "--test-name",
-            "weblayer_instrumentation_test_versions_apk_Client Library Skew Tests For 90.0.4430.76"
+            "weblayer_instrumentation_test_versions_with_chrome_apk_Client Library Skew Tests For 90.0.4430.81"
           ],
           "script": "//build/android/pylib/results/presentation/test_results_presentation.py"
         },
-        "name": "weblayer_instrumentation_test_versions_apk_Client Library Skew Tests For 90.0.4430.76",
+        "name": "weblayer_instrumentation_test_versions_with_chrome_apk_Client Library Skew Tests For 90.0.4430.81",
         "resultdb": {
           "enable": true
         },
@@ -5170,7 +5241,7 @@
             {
               "cipd_package": "chromium/testing/weblayer-x86",
               "location": "weblayer_instrumentation_test_M90",
-              "revision": "version:90.0.4430.76"
+              "revision": "version:90.0.4430.81"
             },
             {
               "cipd_package": "infra/tools/luci/logdog/butler/${platform}",
@@ -5211,11 +5282,12 @@
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 2
         },
-        "test": "weblayer_instrumentation_test_versions_apk",
-        "test_id_prefix": "ninja://weblayer/browser/android/javatests:weblayer_instrumentation_test_versions_apk/"
+        "test": "weblayer_instrumentation_test_versions_with_chrome_apk",
+        "test_id_prefix": "ninja://weblayer/browser/android/javatests:weblayer_instrumentation_test_versions_with_chrome_apk/"
       },
       {
         "args": [
+          "--additional-apk=apks/ChromePublic.apk",
           "--webview-apk-path=apks/SystemWebView.apk",
           "--test-runner-outdir",
           ".",
@@ -5235,11 +5307,11 @@
             "--bucket",
             "chromium-result-details",
             "--test-name",
-            "weblayer_instrumentation_test_versions_apk_Client Library Skew Tests For 91.0.4472.8"
+            "weblayer_instrumentation_test_versions_with_chrome_apk_Client Library Skew Tests For 91.0.4472.12"
           ],
           "script": "//build/android/pylib/results/presentation/test_results_presentation.py"
         },
-        "name": "weblayer_instrumentation_test_versions_apk_Client Library Skew Tests For 91.0.4472.8",
+        "name": "weblayer_instrumentation_test_versions_with_chrome_apk_Client Library Skew Tests For 91.0.4472.12",
         "resultdb": {
           "enable": true
         },
@@ -5249,7 +5321,7 @@
             {
               "cipd_package": "chromium/testing/weblayer-x86",
               "location": "weblayer_instrumentation_test_M91",
-              "revision": "version:91.0.4472.8"
+              "revision": "version:91.0.4472.12"
             },
             {
               "cipd_package": "infra/tools/luci/logdog/butler/${platform}",
@@ -5290,11 +5362,12 @@
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 2
         },
-        "test": "weblayer_instrumentation_test_versions_apk",
-        "test_id_prefix": "ninja://weblayer/browser/android/javatests:weblayer_instrumentation_test_versions_apk/"
+        "test": "weblayer_instrumentation_test_versions_with_chrome_apk",
+        "test_id_prefix": "ninja://weblayer/browser/android/javatests:weblayer_instrumentation_test_versions_with_chrome_apk/"
       },
       {
         "args": [
+          "--additional-apk=apks/ChromePublic.apk",
           "--webview-apk-path=apks/AOSP_SystemWebView.apk",
           "--test-runner-outdir",
           ".",
@@ -5314,11 +5387,11 @@
             "--bucket",
             "chromium-result-details",
             "--test-name",
-            "weblayer_instrumentation_test_versions_apk_Implementation Library Skew Tests For 89.0.4389.129"
+            "weblayer_instrumentation_test_versions_with_chrome_apk_Implementation Library Skew Tests For 89.0.4389.129"
           ],
           "script": "//build/android/pylib/results/presentation/test_results_presentation.py"
         },
-        "name": "weblayer_instrumentation_test_versions_apk_Implementation Library Skew Tests For 89.0.4389.129",
+        "name": "weblayer_instrumentation_test_versions_with_chrome_apk_Implementation Library Skew Tests For 89.0.4389.129",
         "resultdb": {
           "enable": true
         },
@@ -5369,11 +5442,12 @@
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 2
         },
-        "test": "weblayer_instrumentation_test_versions_apk",
-        "test_id_prefix": "ninja://weblayer/browser/android/javatests:weblayer_instrumentation_test_versions_apk/"
+        "test": "weblayer_instrumentation_test_versions_with_chrome_apk",
+        "test_id_prefix": "ninja://weblayer/browser/android/javatests:weblayer_instrumentation_test_versions_with_chrome_apk/"
       },
       {
         "args": [
+          "--additional-apk=apks/ChromePublic.apk",
           "--webview-apk-path=apks/AOSP_SystemWebView.apk",
           "--test-runner-outdir",
           ".",
@@ -5393,11 +5467,11 @@
             "--bucket",
             "chromium-result-details",
             "--test-name",
-            "weblayer_instrumentation_test_versions_apk_Implementation Library Skew Tests For 90.0.4430.76"
+            "weblayer_instrumentation_test_versions_with_chrome_apk_Implementation Library Skew Tests For 90.0.4430.81"
           ],
           "script": "//build/android/pylib/results/presentation/test_results_presentation.py"
         },
-        "name": "weblayer_instrumentation_test_versions_apk_Implementation Library Skew Tests For 90.0.4430.76",
+        "name": "weblayer_instrumentation_test_versions_with_chrome_apk_Implementation Library Skew Tests For 90.0.4430.81",
         "resultdb": {
           "enable": true
         },
@@ -5407,7 +5481,7 @@
             {
               "cipd_package": "chromium/testing/weblayer-x86",
               "location": "weblayer_instrumentation_test_M90",
-              "revision": "version:90.0.4430.76"
+              "revision": "version:90.0.4430.81"
             },
             {
               "cipd_package": "infra/tools/luci/logdog/butler/${platform}",
@@ -5448,11 +5522,12 @@
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 2
         },
-        "test": "weblayer_instrumentation_test_versions_apk",
-        "test_id_prefix": "ninja://weblayer/browser/android/javatests:weblayer_instrumentation_test_versions_apk/"
+        "test": "weblayer_instrumentation_test_versions_with_chrome_apk",
+        "test_id_prefix": "ninja://weblayer/browser/android/javatests:weblayer_instrumentation_test_versions_with_chrome_apk/"
       },
       {
         "args": [
+          "--additional-apk=apks/ChromePublic.apk",
           "--webview-apk-path=apks/AOSP_SystemWebView.apk",
           "--test-runner-outdir",
           ".",
@@ -5472,11 +5547,11 @@
             "--bucket",
             "chromium-result-details",
             "--test-name",
-            "weblayer_instrumentation_test_versions_apk_Implementation Library Skew Tests For 91.0.4472.8"
+            "weblayer_instrumentation_test_versions_with_chrome_apk_Implementation Library Skew Tests For 91.0.4472.12"
           ],
           "script": "//build/android/pylib/results/presentation/test_results_presentation.py"
         },
-        "name": "weblayer_instrumentation_test_versions_apk_Implementation Library Skew Tests For 91.0.4472.8",
+        "name": "weblayer_instrumentation_test_versions_with_chrome_apk_Implementation Library Skew Tests For 91.0.4472.12",
         "resultdb": {
           "enable": true
         },
@@ -5486,7 +5561,7 @@
             {
               "cipd_package": "chromium/testing/weblayer-x86",
               "location": "weblayer_instrumentation_test_M91",
-              "revision": "version:91.0.4472.8"
+              "revision": "version:91.0.4472.12"
             },
             {
               "cipd_package": "infra/tools/luci/logdog/butler/${platform}",
@@ -5527,8 +5602,8 @@
           "service_account": "chromium-tester@chops-service-accounts.iam.gserviceaccount.com",
           "shards": 2
         },
-        "test": "weblayer_instrumentation_test_versions_apk",
-        "test_id_prefix": "ninja://weblayer/browser/android/javatests:weblayer_instrumentation_test_versions_apk/"
+        "test": "weblayer_instrumentation_test_versions_with_chrome_apk",
+        "test_id_prefix": "ninja://weblayer/browser/android/javatests:weblayer_instrumentation_test_versions_with_chrome_apk/"
       }
     ]
   },

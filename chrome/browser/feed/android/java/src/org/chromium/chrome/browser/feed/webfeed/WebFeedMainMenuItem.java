@@ -7,6 +7,7 @@ package org.chromium.chrome.browser.feed.webfeed;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
+import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -93,7 +94,7 @@ public class WebFeedMainMenuItem extends FrameLayout {
 
     private void initializeText(WebFeedMetadata webFeedMetadata) {
         TextView itemText = findViewById(R.id.menu_item_text);
-        if (webFeedMetadata != null && webFeedMetadata.title != null) {
+        if (webFeedMetadata != null && TextUtils.isEmpty(webFeedMetadata.title)) {
             mTitle = webFeedMetadata.title;
         } else {
             mTitle = UrlFormatter.formatUrlForDisplayOmitSchemePathAndTrivialSubdomains(mUrl);
@@ -148,10 +149,11 @@ public class WebFeedMainMenuItem extends FrameLayout {
         mChipView = findViewById(R.id.follow_chip_view);
         showEnabledChipView(
                 mChipView, mContext.getText(R.string.menu_follow), R.drawable.ic_add, (view) -> {
-                    mWebFeedBridge.followFromUrl(mUrl,
-                            (result)
-                                    -> mWebFeedSnackbarController.showSnackbarForFollow(
-                                            result, mUrl, mTitle));
+                    mWebFeedBridge.followFromUrl(mUrl, result -> {
+                        byte[] followId = result.metadata != null ? result.metadata.id : null;
+                        mWebFeedSnackbarController.showSnackbarForFollow(
+                                result, followId, mUrl, mTitle);
+                    });
                     mAppMenuHandler.hideAppMenu();
                 });
     }
